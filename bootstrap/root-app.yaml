@@ -1,0 +1,41 @@
+# THE HANDOFF ARTIFACT (homelab repo: docs/bootstrap-plan.md §9).
+# The moment Argo reconciles this Application, control of everything except the
+# OS (Talos) and AWS (Terraform) passes to git: platform components are
+# directories under platform/, deployed by commit. Never `kubectl apply` again.
+#
+# Applied by Talos extraManifests, listed AFTER argocd.yaml. Plain app-of-apps,
+# not an ApplicationSet — children carry sync-wave annotations for ordering,
+# and AppSets discard that health/ordering signal (plan §9).
+# VERIFY fields against the ArgoCD version pinned in build-argocd.sh:
+# https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/HashVelani/homelab-platform # anonymous clone — the whole point
+    targetRevision: main
+    path: platform
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: -1 # bootstrap-time transients (webhooks warming, CRDs establishing) must not kill the handoff
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
