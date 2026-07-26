@@ -7,3 +7,7 @@ find_unpinned_images() {
   local target_file="$1"
   grep -nE "$UNPINNED_IMAGE_REGEX" "$target_file" || true
 }
+
+find_secret_pattern_matches() {
+  grep -RPn "$SECRET_PATTERN" "$@" || true
+}

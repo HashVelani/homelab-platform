@@ -50,10 +50,8 @@ PY
 # High-signal secret patterns (kept strict to reduce false positives).
 secret_matches_file="$(mktemp)"
 trap 'rm -f "$secret_matches_file"' EXIT
-if grep -RPn \
-  "$SECRET_PATTERN" \
-  --exclude-dir=.git \
-  . >"$secret_matches_file"; then
+find_secret_pattern_matches --exclude-dir=.git . >"$secret_matches_file"
+if [[ -s "$secret_matches_file" ]]; then
   cat "$secret_matches_file" >&2
   fail "Potential secret material detected."
 fi

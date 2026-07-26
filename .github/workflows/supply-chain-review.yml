@@ -2,7 +2,7 @@ name: Supply Chain Review Reminder
 
 on:
   schedule:
-    # Mondays at 14:00 UTC
+    # Mondays at 14:00 UTC (fixed UTC schedule; local time varies with DST)
     - cron: "0 14 * * 1"
   workflow_dispatch:
 

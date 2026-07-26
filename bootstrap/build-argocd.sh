@@ -101,7 +101,7 @@ if network_policy_replacements == 0:
 p.write_text(text)
 PY
 
-if grep -Pq "$SECRET_PATTERN" argocd.yaml; then
+if [[ -n "$(find_secret_pattern_matches argocd.yaml)" ]]; then
     echo "ERROR: possible credential-like material detected in argocd.yaml" >&2
     exit 1
 fi
