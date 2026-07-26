@@ -24,3 +24,22 @@ repo. Secrets come from External Secrets → AWS after bootstrap.
 - `platform/` — every platform component as an Argo Application, ordered by
   sync-wave annotations. Near-empty for Bucket A; `external-secrets/` lands
   first in Bucket B.
+
+## Security controls (public repo hardening)
+
+- `bootstrap/root-app.yaml` is pinned to an immutable revision (not `main`).
+- `bootstrap/argocd.yaml` uses image digests (`@sha256`) for ArgoCD, Dex, and Redis.
+- `argocd-server-network-policy` is restricted to traffic from the `argocd` namespace on expected ports.
+- CI enforces security guardrails on every PR/push:
+  - `.github/workflows/security-gates.yml`
+  - `scripts/security-policy-check.sh`
+- Secrets policy: this repo stays credential-free. Put credentials only in AWS Secrets Manager and consume through External Secrets.
+
+### Required GitHub repository settings (manual, one-time)
+
+Enforce these on `main` in GitHub settings:
+
+1. Branch protection enabled for `main`
+2. Require pull request reviews before merging
+3. Require status checks to pass (include `Security Gates`)
+4. Require signed commits

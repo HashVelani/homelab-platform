@@ -15,6 +15,9 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 ARGOCD_VERSION="${ARGOCD_VERSION:?set ARGOCD_VERSION, e.g. ARGOCD_VERSION=v3.2.0 (check releases page)}"
+export ARGOCD_IMAGE="quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a"
+export DEX_IMAGE="ghcr.io/dexidp/dex:v2.45.0@sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d"
+export REDIS_IMAGE="public.ecr.aws/docker/library/redis:8.2.3-alpine@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
@@ -41,8 +44,54 @@ YAML
 # kubectl's bundled kustomize; avoids requiring a separate kustomize binary.
 kubectl kustomize "$tmpdir" >argocd.yaml
 
+python3 - <<'PY'
+from pathlib import Path
+import os
+
+p = Path("argocd.yaml")
+text = p.read_text()
+
+replacements = {
+    "quay.io/argoproj/argocd:v3.4.5": os.environ["ARGOCD_IMAGE"],
+    "ghcr.io/dexidp/dex:v2.45.0": os.environ["DEX_IMAGE"],
+    "public.ecr.aws/docker/library/redis:8.2.3-alpine": os.environ["REDIS_IMAGE"],
+}
+
+for old, new in replacements.items():
+    text = text.replace(old, new)
+
+target = """name: argocd-server-network-policy
+  namespace: argocd
+spec:
+  ingress:
+  - {}
+"""
+replacement = """name: argocd-server-network-policy
+  namespace: argocd
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: argocd
+    ports:
+    - port: 8080
+      protocol: TCP
+    - port: 8083
+      protocol: TCP
+"""
+text = text.replace(target, replacement)
+
+p.write_text(text)
+PY
+
 if grep -qE 'kind: Secret' argocd.yaml && grep -qE '^\s+(password|token|key)\s*:' argocd.yaml; then
     echo "WARNING: possible secret material in argocd.yaml — inspect before committing" >&2
+fi
+
+if grep -nE '^[[:space:]]*image:[[:space:]]*[^[:space:]@]+:[^[:space:]@]+$' argocd.yaml >/dev/null; then
+    echo "ERROR: unpinned image tag found in argocd.yaml (must include @sha256 digest)" >&2
+    exit 1
 fi
 
 # Sanity: every namespaced kind must carry metadata.namespace: argocd
