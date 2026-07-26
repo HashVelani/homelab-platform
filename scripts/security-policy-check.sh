@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
+source "$REPO_ROOT/scripts/policy-lib.sh"
 
 fail() {
   echo "ERROR: $*" >&2
@@ -18,8 +19,9 @@ case "${target_revision:-}" in
     ;;
 esac
 
-if grep -nE '^[[:space:]]*image:[[:space:]]*[^[:space:]@]+:[^[:space:]@]+$' bootstrap/argocd.yaml >/tmp/unpinned-images.txt; then
-  cat /tmp/unpinned-images.txt >&2
+unpinned_images="$(find_unpinned_images bootstrap/argocd.yaml)"
+if [[ -n "$unpinned_images" ]]; then
+  printf '%s\n' "$unpinned_images" >&2
   fail "Found unpinned image tags in bootstrap/argocd.yaml (must include @sha256 digest)."
 fi
 

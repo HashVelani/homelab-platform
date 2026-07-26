@@ -13,6 +13,7 @@
 # VERIFY current stable tag before running: https://github.com/argoproj/argo-cd/releases
 set -euo pipefail
 cd "$(dirname "$0")"
+source ../scripts/policy-lib.sh
 
 ARGOCD_VERSION="${ARGOCD_VERSION:?set ARGOCD_VERSION, e.g. ARGOCD_VERSION=v3.2.0 (check releases page)}"
 export ARGOCD_IMAGE="quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a"
@@ -47,6 +48,7 @@ kubectl kustomize "$tmpdir" >argocd.yaml
 python3 - <<'PY'
 from pathlib import Path
 import os
+import re
 
 p = Path("argocd.yaml")
 text = p.read_text()
@@ -60,27 +62,26 @@ replacements = {
 for old, new in replacements.items():
     text = text.replace(old, new)
 
-target = """name: argocd-server-network-policy
-  namespace: argocd
-spec:
-  ingress:
-  - {}
-"""
-replacement = """name: argocd-server-network-policy
-  namespace: argocd
-spec:
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: argocd
-    ports:
-    - port: 8080
-      protocol: TCP
-    - port: 8083
-      protocol: TCP
-"""
-text = text.replace(target, replacement)
+pattern = (
+    r"(name:\s*argocd-server-network-policy\s*\n"
+    r"\s*namespace:\s*argocd\s*\n"
+    r"\s*spec:\s*\n"
+    r"\s*ingress:\s*\n)"
+    r"(\s*-\s*\{\}\s*\n)"
+)
+replacement = (
+    r"\1"
+    r"  - from:\n"
+    r"    - namespaceSelector:\n"
+    r"        matchLabels:\n"
+    r"          kubernetes.io/metadata.name: argocd\n"
+    r"    ports:\n"
+    r"    - port: 8080\n"
+    r"      protocol: TCP\n"
+    r"    - port: 8083\n"
+    r"      protocol: TCP\n"
+)
+text, _ = re.subn(pattern, replacement, text, flags=re.M)
 
 p.write_text(text)
 PY
@@ -89,7 +90,7 @@ if grep -qE 'kind: Secret' argocd.yaml && grep -qE '^\s+(password|token|key)\s*:
     echo "WARNING: possible secret material in argocd.yaml — inspect before committing" >&2
 fi
 
-if grep -nE '^[[:space:]]*image:[[:space:]]*[^[:space:]@]+:[^[:space:]@]+$' argocd.yaml >/dev/null; then
+if [[ -n "$(find_unpinned_images argocd.yaml)" ]]; then
     echo "ERROR: unpinned image tag found in argocd.yaml (must include @sha256 digest)" >&2
     exit 1
 fi
