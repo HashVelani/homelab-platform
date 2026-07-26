@@ -3,6 +3,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
+[[ -f "$REPO_ROOT/scripts/policy-lib.sh" ]] || { echo "ERROR: Missing required helper: scripts/policy-lib.sh" >&2; exit 1; }
 source "$REPO_ROOT/scripts/policy-lib.sh"
 
 fail() {
@@ -38,14 +39,12 @@ import re
 import sys
 
 text = Path("bootstrap/argocd.yaml").read_text()
-m = re.search(
-    r"name:\s*argocd-server-network-policy\s*\n\s*namespace:\s*argocd\s*\n\s*spec:\s*\n\s*ingress:\s*\n\s*-\s*\{\}",
-    text,
-    re.M,
-)
-if m:
-    print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
-    sys.exit(1)
+for doc in text.split("---"):
+    if "kind: NetworkPolicy" not in doc or "name: argocd-server-network-policy" not in doc:
+        continue
+    if re.search(r'^\s*-\s*\{\}\s*$', doc, re.M):
+        print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
+        sys.exit(1)
 PY
 
 # High-signal secret patterns (kept strict to reduce false positives).

@@ -74,11 +74,8 @@ for old, new in replacements.items():
         raise SystemExit(f"failed to replace all image references for: {old}")
 
 pattern = (
-    r"(name:\s*argocd-server-network-policy\s*\n"
-    r"\s*namespace:\s*argocd\s*\n"
-    r"\s*spec:\s*\n"
-    r"\s*ingress:\s*\n)"
-    r"(\s*-\s*\{\}\s*\n)"
+    r"(name:\s*argocd-server-network-policy[\s\S]*?ingress:\s*\n)"
+    r"\s*-\s*\{\}\s*\n"
 )
 replacement = (
     r"\1"
@@ -92,7 +89,9 @@ replacement = (
     r"    - port: 8083\n"
     r"      protocol: TCP\n"
 )
-text, _ = re.subn(pattern, replacement, text, flags=re.M)
+text, network_policy_replacements = re.subn(pattern, replacement, text, flags=re.M)
+if network_policy_replacements == 0:
+    raise SystemExit("failed to update argocd-server-network-policy ingress rules")
 
 p.write_text(text)
 PY
