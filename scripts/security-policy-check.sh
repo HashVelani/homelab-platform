@@ -50,8 +50,8 @@ PY
 # High-signal secret patterns (kept strict to reduce false positives).
 secret_matches_file="$(mktemp)"
 trap 'rm -f "$secret_matches_file"' EXIT
-if grep -RInE \
-  '(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|-----BEGIN (RSA|EC|OPENSSH|DSA|PGP|PRIVATE) KEY-----|AIza[0-9A-Za-z\-_]{35})' \
+if grep -RPn \
+  "$SECRET_PATTERN" \
   --exclude-dir=.git \
   . >"$secret_matches_file"; then
   cat "$secret_matches_file" >&2

@@ -16,6 +16,8 @@ cd "$(dirname "$0")"
 source ../scripts/policy-lib.sh
 
 ARGOCD_VERSION="${ARGOCD_VERSION:?set ARGOCD_VERSION, e.g. ARGOCD_VERSION=v3.2.0 (check releases page)}"
+# Verify ArgoCD tags on https://github.com/argoproj/argo-cd/releases and resolve digests with:
+# docker buildx imagetools inspect <image:tag>
 export ARGOCD_IMAGE="quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a"
 export DEX_IMAGE="ghcr.io/dexidp/dex:v2.45.0@sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d"
 export REDIS_IMAGE="public.ecr.aws/docker/library/redis:8.2.3-alpine@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba"
@@ -57,6 +59,9 @@ required_env = ("ARGOCD_IMAGE", "DEX_IMAGE", "REDIS_IMAGE")
 missing = [k for k in required_env if not os.environ.get(k)]
 if missing:
     raise SystemExit(f"missing required image pins: {', '.join(missing)}")
+bad_format = [k for k in required_env if "@sha256:" not in os.environ[k]]
+if bad_format:
+    raise SystemExit(f"image pins must include @sha256 digest: {', '.join(bad_format)}")
 
 replacements = {
     os.environ["ARGOCD_IMAGE"].split("@", 1)[0]: os.environ["ARGOCD_IMAGE"],
@@ -96,7 +101,7 @@ if network_policy_replacements == 0:
 p.write_text(text)
 PY
 
-if grep -qE '(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|-----BEGIN (RSA|EC|OPENSSH|DSA|PGP|PRIVATE) KEY-----|AIza[0-9A-Za-z\-_]{35})' argocd.yaml; then
+if grep -Pq "$SECRET_PATTERN" argocd.yaml; then
     echo "ERROR: possible credential-like material detected in argocd.yaml" >&2
     exit 1
 fi
