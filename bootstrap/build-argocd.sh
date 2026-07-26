@@ -24,6 +24,10 @@ export REDIS_IMAGE="public.ecr.aws/docker/library/redis:8.2.3-alpine@sha256:08ad
 _argocd_image_no_digest="${ARGOCD_IMAGE%%@*}"
 ARGOCD_VERSION="${_argocd_image_no_digest##*:}"
 unset _argocd_image_no_digest
+[[ "$ARGOCD_VERSION" =~ ^v[0-9] ]] || {
+  echo "ERROR: ARGOCD_IMAGE must include a version tag (e.g. :v3.4.5) before the digest; got '${ARGOCD_VERSION}'" >&2
+  exit 1
+}
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
