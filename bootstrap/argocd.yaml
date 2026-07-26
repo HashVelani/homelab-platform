@@ -3,7 +3,6 @@ kind: Namespace
 metadata:
   name: argocd
 ---
-# This is an auto-generated file. DO NOT EDIT
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -30567,6 +30566,7 @@ metadata:
     app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-application-controller
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -30576,6 +30576,7 @@ metadata:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-applicationset-controller
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -30585,6 +30586,7 @@ metadata:
     app.kubernetes.io/name: argocd-dex-server
     app.kubernetes.io/part-of: argocd
   name: argocd-dex-server
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -30594,6 +30596,7 @@ metadata:
     app.kubernetes.io/name: argocd-notifications-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-notifications-controller
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -30603,6 +30606,7 @@ metadata:
     app.kubernetes.io/name: argocd-redis
     app.kubernetes.io/part-of: argocd
   name: argocd-redis
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -30612,6 +30616,7 @@ metadata:
     app.kubernetes.io/name: argocd-repo-server
     app.kubernetes.io/part-of: argocd
   name: argocd-repo-server
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -30621,6 +30626,7 @@ metadata:
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/part-of: argocd
   name: argocd-server
+  namespace: argocd
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -30630,6 +30636,7 @@ metadata:
     app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-application-controller
+  namespace: argocd
 rules:
 - apiGroups:
   - ""
@@ -30678,6 +30685,7 @@ metadata:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-applicationset-controller
+  namespace: argocd
 rules:
 - apiGroups:
   - argoproj.io
@@ -30753,6 +30761,7 @@ metadata:
     app.kubernetes.io/name: argocd-dex-server
     app.kubernetes.io/part-of: argocd
   name: argocd-dex-server
+  namespace: argocd
 rules:
 - apiGroups:
   - ""
@@ -30772,6 +30781,7 @@ metadata:
     app.kubernetes.io/name: argocd-notifications-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-notifications-controller
+  namespace: argocd
 rules:
 - apiGroups:
   - argoproj.io
@@ -30817,6 +30827,7 @@ metadata:
     app.kubernetes.io/name: argocd-redis
     app.kubernetes.io/part-of: argocd
   name: argocd-redis
+  namespace: argocd
 rules:
 - apiGroups:
   - ""
@@ -30841,6 +30852,7 @@ metadata:
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/part-of: argocd
   name: argocd-server
+  namespace: argocd
 rules:
 - apiGroups:
   - ""
@@ -31032,6 +31044,7 @@ metadata:
     app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-application-controller
+  namespace: argocd
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -31039,6 +31052,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: argocd-application-controller
+  namespace: argocd
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -31048,6 +31062,7 @@ metadata:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-applicationset-controller
+  namespace: argocd
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -31055,6 +31070,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: argocd-applicationset-controller
+  namespace: argocd
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -31064,6 +31080,7 @@ metadata:
     app.kubernetes.io/name: argocd-dex-server
     app.kubernetes.io/part-of: argocd
   name: argocd-dex-server
+  namespace: argocd
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -31071,6 +31088,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: argocd-dex-server
+  namespace: argocd
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -31080,6 +31098,7 @@ metadata:
     app.kubernetes.io/name: argocd-notifications-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-notifications-controller
+  namespace: argocd
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -31087,6 +31106,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: argocd-notifications-controller
+  namespace: argocd
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -31096,6 +31116,7 @@ metadata:
     app.kubernetes.io/name: argocd-redis
     app.kubernetes.io/part-of: argocd
   name: argocd-redis
+  namespace: argocd
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -31103,6 +31124,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: argocd-redis
+  namespace: argocd
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -31112,6 +31134,7 @@ metadata:
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/part-of: argocd
   name: argocd-server
+  namespace: argocd
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -31119,6 +31142,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: argocd-server
+  namespace: argocd
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -31272,6 +31296,7 @@ metadata:
     app.kubernetes.io/name: argocd-cm
     app.kubernetes.io/part-of: argocd
   name: argocd-cm
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -31280,6 +31305,7 @@ metadata:
     app.kubernetes.io/name: argocd-cmd-params-cm
     app.kubernetes.io/part-of: argocd
   name: argocd-cmd-params-cm
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -31288,6 +31314,7 @@ metadata:
     app.kubernetes.io/name: argocd-gpg-keys-cm
     app.kubernetes.io/part-of: argocd
   name: argocd-gpg-keys-cm
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -31297,6 +31324,7 @@ metadata:
     app.kubernetes.io/name: argocd-notifications-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-notifications-cm
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -31305,6 +31333,7 @@ metadata:
     app.kubernetes.io/name: argocd-rbac-cm
     app.kubernetes.io/part-of: argocd
   name: argocd-rbac-cm
+  namespace: argocd
 ---
 apiVersion: v1
 data:
@@ -31330,6 +31359,7 @@ metadata:
     app.kubernetes.io/name: argocd-ssh-known-hosts-cm
     app.kubernetes.io/part-of: argocd
   name: argocd-ssh-known-hosts-cm
+  namespace: argocd
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -31338,6 +31368,7 @@ metadata:
     app.kubernetes.io/name: argocd-tls-certs-cm
     app.kubernetes.io/part-of: argocd
   name: argocd-tls-certs-cm
+  namespace: argocd
 ---
 apiVersion: v1
 kind: Secret
@@ -31347,6 +31378,7 @@ metadata:
     app.kubernetes.io/name: argocd-notifications-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-notifications-secret
+  namespace: argocd
 type: Opaque
 ---
 apiVersion: v1
@@ -31356,6 +31388,7 @@ metadata:
     app.kubernetes.io/name: argocd-secret
     app.kubernetes.io/part-of: argocd
   name: argocd-secret
+  namespace: argocd
 type: Opaque
 ---
 apiVersion: v1
@@ -31366,6 +31399,7 @@ metadata:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-applicationset-controller
+  namespace: argocd
 spec:
   ports:
   - name: webhook
@@ -31387,6 +31421,7 @@ metadata:
     app.kubernetes.io/name: argocd-dex-server
     app.kubernetes.io/part-of: argocd
   name: argocd-dex-server
+  namespace: argocd
 spec:
   ports:
   - appProtocol: TCP
@@ -31413,6 +31448,7 @@ metadata:
     app.kubernetes.io/name: argocd-metrics
     app.kubernetes.io/part-of: argocd
   name: argocd-metrics
+  namespace: argocd
 spec:
   ports:
   - name: metrics
@@ -31430,6 +31466,7 @@ metadata:
     app.kubernetes.io/name: argocd-notifications-controller-metrics
     app.kubernetes.io/part-of: argocd
   name: argocd-notifications-controller-metrics
+  namespace: argocd
 spec:
   ports:
   - name: metrics
@@ -31447,6 +31484,7 @@ metadata:
     app.kubernetes.io/name: argocd-redis
     app.kubernetes.io/part-of: argocd
   name: argocd-redis
+  namespace: argocd
 spec:
   ports:
   - name: tcp-redis
@@ -31463,6 +31501,7 @@ metadata:
     app.kubernetes.io/name: argocd-repo-server
     app.kubernetes.io/part-of: argocd
   name: argocd-repo-server
+  namespace: argocd
 spec:
   ports:
   - name: server
@@ -31484,6 +31523,7 @@ metadata:
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/part-of: argocd
   name: argocd-server
+  namespace: argocd
 spec:
   ports:
   - name: http
@@ -31505,6 +31545,7 @@ metadata:
     app.kubernetes.io/name: argocd-server-metrics
     app.kubernetes.io/part-of: argocd
   name: argocd-server-metrics
+  namespace: argocd
 spec:
   ports:
   - name: metrics
@@ -31522,6 +31563,7 @@ metadata:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-applicationset-controller
+  namespace: argocd
 spec:
   selector:
     matchLabels:
@@ -31825,6 +31867,7 @@ metadata:
     app.kubernetes.io/name: argocd-dex-server
     app.kubernetes.io/part-of: argocd
   name: argocd-dex-server
+  namespace: argocd
 spec:
   selector:
     matchLabels:
@@ -31953,6 +31996,7 @@ metadata:
     app.kubernetes.io/name: argocd-notifications-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-notifications-controller
+  namespace: argocd
 spec:
   selector:
     matchLabels:
@@ -32059,6 +32103,7 @@ metadata:
     app.kubernetes.io/name: argocd-redis
     app.kubernetes.io/part-of: argocd
   name: argocd-redis
+  namespace: argocd
 spec:
   selector:
     matchLabels:
@@ -32141,6 +32186,7 @@ metadata:
     app.kubernetes.io/name: argocd-repo-server
     app.kubernetes.io/part-of: argocd
   name: argocd-repo-server
+  namespace: argocd
 spec:
   selector:
     matchLabels:
@@ -32538,6 +32584,7 @@ metadata:
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/part-of: argocd
   name: argocd-server
+  namespace: argocd
 spec:
   selector:
     matchLabels:
@@ -32994,6 +33041,7 @@ metadata:
     app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-application-controller
+  namespace: argocd
 spec:
   replicas: 1
   selector:
@@ -33398,6 +33446,7 @@ metadata:
     app.kubernetes.io/name: argocd-application-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-application-controller-network-policy
+  namespace: argocd
 spec:
   ingress:
   - from:
@@ -33418,6 +33467,7 @@ metadata:
     app.kubernetes.io/name: argocd-applicationset-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-applicationset-controller-network-policy
+  namespace: argocd
 spec:
   ingress:
   - from:
@@ -33441,6 +33491,7 @@ metadata:
     app.kubernetes.io/name: argocd-dex-server
     app.kubernetes.io/part-of: argocd
   name: argocd-dex-server-network-policy
+  namespace: argocd
 spec:
   ingress:
   - from:
@@ -33471,6 +33522,7 @@ metadata:
     app.kubernetes.io/name: argocd-notifications-controller
     app.kubernetes.io/part-of: argocd
   name: argocd-notifications-controller-network-policy
+  namespace: argocd
 spec:
   ingress:
   - from:
@@ -33492,6 +33544,7 @@ metadata:
     app.kubernetes.io/name: argocd-redis
     app.kubernetes.io/part-of: argocd
   name: argocd-redis-network-policy
+  namespace: argocd
 spec:
   ingress:
   - from:
@@ -33521,6 +33574,7 @@ metadata:
     app.kubernetes.io/name: argocd-repo-server
     app.kubernetes.io/part-of: argocd
   name: argocd-repo-server-network-policy
+  namespace: argocd
 spec:
   ingress:
   - from:
@@ -33557,6 +33611,7 @@ metadata:
     app.kubernetes.io/name: argocd-server
     app.kubernetes.io/part-of: argocd
   name: argocd-server-network-policy
+  namespace: argocd
 spec:
   ingress:
   - {}
