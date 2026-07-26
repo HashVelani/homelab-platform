@@ -19,7 +19,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/HashVelani/homelab-platform # anonymous clone — the whole point
-    targetRevision: main
+    targetRevision: 715591a6e45add823b0f36938756c503e512f099 # immutable pin; bump intentionally after review
     path: platform
     directory:
       recurse: true

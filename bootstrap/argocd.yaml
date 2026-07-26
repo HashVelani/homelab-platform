@@ -31791,7 +31791,7 @@ spec:
               key: applicationsetcontroller.status.max.resources.count
               name: argocd-cmd-params-cm
               optional: true
-        image: quay.io/argoproj/argocd:v3.4.5
+        image: quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a
         imagePullPolicy: Always
         name: argocd-applicationset-controller
         ports:
@@ -31921,7 +31921,7 @@ spec:
               key: dexserver.connector.failure.continue
               name: argocd-cmd-params-cm
               optional: true
-        image: ghcr.io/dexidp/dex:v2.45.0
+        image: ghcr.io/dexidp/dex:v2.45.0@sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d
         imagePullPolicy: Always
         name: dex
         ports:
@@ -31951,7 +31951,7 @@ spec:
         - -n
         - /usr/local/bin/argocd
         - /shared/argocd-dex
-        image: quay.io/argoproj/argocd:v3.4.5
+        image: quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a
         imagePullPolicy: Always
         name: copyutil
         securityContext:
@@ -32054,7 +32054,7 @@ spec:
               key: notificationscontroller.repo.server.plaintext
               name: argocd-cmd-params-cm
               optional: true
-        image: quay.io/argoproj/argocd:v3.4.5
+        image: quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a
         imagePullPolicy: Always
         livenessProbe:
           tcpSocket:
@@ -32141,7 +32141,7 @@ spec:
             secretKeyRef:
               key: auth
               name: argocd-redis
-        image: public.ecr.aws/docker/library/redis:8.2.3-alpine
+        image: public.ecr.aws/docker/library/redis:8.2.3-alpine@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
         imagePullPolicy: Always
         name: redis
         ports:
@@ -32157,7 +32157,7 @@ spec:
         - argocd
         - admin
         - redis-initial-password
-        image: quay.io/argoproj/argocd:v3.4.5
+        image: quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a
         imagePullPolicy: IfNotPresent
         name: secret-init
         securityContext:
@@ -32467,7 +32467,7 @@ spec:
           value: /helm-working-dir
         - name: HELM_DATA_HOME
           value: /helm-working-dir
-        image: quay.io/argoproj/argocd:v3.4.5
+        image: quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
@@ -32520,7 +32520,7 @@ spec:
         command:
         - sh
         - -c
-        image: quay.io/argoproj/argocd:v3.4.5
+        image: quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a
         name: copyutil
         securityContext:
           allowPrivilegeEscalation: false
@@ -32948,7 +32948,7 @@ spec:
               key: server.sync.replace.allowed
               name: argocd-cmd-params-cm
               optional: true
-        image: quay.io/argoproj/argocd:v3.4.5
+        image: quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -33381,7 +33381,7 @@ spec:
               optional: true
         - name: KUBECACHEDIR
           value: /tmp/kubecache
-        image: quay.io/argoproj/argocd:v3.4.5
+        image: quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a
         imagePullPolicy: Always
         name: argocd-application-controller
         ports:
@@ -33614,7 +33614,15 @@ metadata:
   namespace: argocd
 spec:
   ingress:
-  - {}
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: argocd
+    ports:
+    - port: 8080
+      protocol: TCP
+    - port: 8083
+      protocol: TCP
   podSelector:
     matchLabels:
       app.kubernetes.io/name: argocd-server
