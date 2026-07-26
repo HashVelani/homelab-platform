@@ -53,6 +53,11 @@ import re
 p = Path("argocd.yaml")
 text = p.read_text()
 
+required_env = ("ARGOCD_IMAGE", "DEX_IMAGE", "REDIS_IMAGE")
+missing = [k for k in required_env if not os.environ.get(k)]
+if missing:
+    raise SystemExit(f"missing required image pins: {', '.join(missing)}")
+
 replacements = {
     os.environ["ARGOCD_IMAGE"].split("@", 1)[0]: os.environ["ARGOCD_IMAGE"],
     os.environ["DEX_IMAGE"].split("@", 1)[0]: os.environ["DEX_IMAGE"],
