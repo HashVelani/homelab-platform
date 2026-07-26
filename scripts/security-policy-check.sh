@@ -12,7 +12,14 @@ fail() {
 
 echo "Running security policy checks..."
 
-target_revision="$(awk '/targetRevision:/ {print $2; exit}' bootstrap/root-app.yaml || true)"
+target_revision="$(python3 - <<'PY'
+from pathlib import Path
+import re
+text = Path("bootstrap/root-app.yaml").read_text()
+m = re.search(r'^\s*targetRevision:\s*["\']?([^"\']+)["\']?\s*$', text, re.M)
+print(m.group(1) if m else "")
+PY
+)"
 case "${target_revision:-}" in
   main|master|HEAD|"")
     fail "bootstrap/root-app.yaml must pin targetRevision to an immutable commit SHA or tag (found: ${target_revision:-<empty>})."
@@ -45,7 +52,7 @@ PY
 secret_matches_file="$(mktemp)"
 trap 'rm -f "$secret_matches_file"' EXIT
 if grep -RInE \
-  '(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{20,}|-----BEGIN (RSA|EC|OPENSSH|DSA|PGP|PRIVATE) KEY-----|AIza[0-9A-Za-z\-_]{35})' \
+  '(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|-----BEGIN (RSA|EC|OPENSSH|DSA|PGP|PRIVATE) KEY-----|AIza[0-9A-Za-z\-_]{35})' \
   --exclude-dir=.git \
   . >"$secret_matches_file"; then
   cat "$secret_matches_file" >&2

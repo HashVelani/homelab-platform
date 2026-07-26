@@ -65,7 +65,13 @@ replacements = {
 }
 
 for old, new in replacements.items():
+    before = text.count(old)
+    if before == 0:
+        raise SystemExit(f"expected image reference not found in manifest: {old}")
     text = text.replace(old, new)
+    after = text.count(new)
+    if after < before:
+        raise SystemExit(f"failed to replace all image references for: {old}")
 
 pattern = (
     r"(name:\s*argocd-server-network-policy\s*\n"
@@ -91,8 +97,9 @@ text, _ = re.subn(pattern, replacement, text, flags=re.M)
 p.write_text(text)
 PY
 
-if grep -qE 'kind: Secret' argocd.yaml && grep -qE '^\s+(password|token|key)\s*:' argocd.yaml; then
-    echo "WARNING: possible secret material in argocd.yaml — inspect before committing" >&2
+if grep -qE '(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|-----BEGIN (RSA|EC|OPENSSH|DSA|PGP|PRIVATE) KEY-----|AIza[0-9A-Za-z\-_]{35})' argocd.yaml; then
+    echo "ERROR: possible credential-like material detected in argocd.yaml" >&2
+    exit 1
 fi
 
 if [[ -n "$(find_unpinned_images argocd.yaml)" ]]; then
