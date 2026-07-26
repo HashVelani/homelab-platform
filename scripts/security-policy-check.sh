@@ -13,6 +13,7 @@ fail() {
 
 echo "Running security policy checks..."
 
+[[ -f bootstrap/root-app.yaml ]] || fail "bootstrap/root-app.yaml not found"
 target_revision="$(python3 - <<'PY'
 from pathlib import Path
 import re
@@ -27,6 +28,7 @@ case "${target_revision:-}" in
     ;;
 esac
 
+[[ -f bootstrap/argocd.yaml ]] || fail "bootstrap/argocd.yaml not found"
 unpinned_images="$(find_unpinned_images bootstrap/argocd.yaml)"
 if [[ -n "$unpinned_images" ]]; then
   printf '%s\n' "$unpinned_images" >&2

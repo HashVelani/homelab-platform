@@ -17,4 +17,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run repository security policy checks
-        run: ./scripts/security-policy-check.sh
+        run: bash scripts/security-policy-check.sh

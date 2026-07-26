@@ -15,12 +15,15 @@ set -euo pipefail
 cd "$(dirname "$0")"
 source ../scripts/policy-lib.sh
 
-ARGOCD_VERSION="${ARGOCD_VERSION:?set ARGOCD_VERSION, e.g. ARGOCD_VERSION=v3.2.0 (check releases page)}"
 # Verify ArgoCD tags on https://github.com/argoproj/argo-cd/releases and resolve digests with:
 # docker buildx imagetools inspect <image:tag>
 export ARGOCD_IMAGE="quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a"
 export DEX_IMAGE="ghcr.io/dexidp/dex:v2.45.0@sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d"
 export REDIS_IMAGE="public.ecr.aws/docker/library/redis:8.2.3-alpine@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba"
+# Derive ARGOCD_VERSION from the pinned ARGOCD_IMAGE tag (single source of truth).
+_argocd_image_no_digest="${ARGOCD_IMAGE%%@*}"
+ARGOCD_VERSION="${_argocd_image_no_digest##*:}"
+unset _argocd_image_no_digest
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
