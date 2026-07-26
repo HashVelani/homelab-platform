@@ -54,9 +54,9 @@ p = Path("argocd.yaml")
 text = p.read_text()
 
 replacements = {
-    "quay.io/argoproj/argocd:v3.4.5": os.environ["ARGOCD_IMAGE"],
-    "ghcr.io/dexidp/dex:v2.45.0": os.environ["DEX_IMAGE"],
-    "public.ecr.aws/docker/library/redis:8.2.3-alpine": os.environ["REDIS_IMAGE"],
+    os.environ["ARGOCD_IMAGE"].split("@", 1)[0]: os.environ["ARGOCD_IMAGE"],
+    os.environ["DEX_IMAGE"].split("@", 1)[0]: os.environ["DEX_IMAGE"],
+    os.environ["REDIS_IMAGE"].split("@", 1)[0]: os.environ["REDIS_IMAGE"],
 }
 
 for old, new in replacements.items():

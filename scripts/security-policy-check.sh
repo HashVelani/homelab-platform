@@ -37,7 +37,7 @@ m = re.search(
     re.M,
 )
 if m:
-    print("ERROR: argocd-server-network-policy still allows open ingress (- {}).", file=sys.stderr)
+    print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
     sys.exit(1)
 PY
 
