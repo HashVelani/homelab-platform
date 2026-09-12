@@ -16,8 +16,17 @@ spec:
       values: |
         crds:
           enabled: true
-        serviceMonitor:
-          enabled: false   # flip in the wave-6 follow-up (design step 14)
+        prometheus:
+          # NOT a top-level serviceMonitor key — the cert-manager chart nests it
+          # under prometheus and spells it lowercase, and its values.schema.json
+          # rejects unknown properties outright, so `serviceMonitor:` made the app
+          # unrenderable: "additional properties 'serviceMonitor' not allowed",
+          # surfacing as ComparisonError / sync Unknown rather than a sync failure.
+          # false is also the chart default; stated explicitly because design
+          # step 14 flips it on once kube-prometheus-stack lands.
+          enabled: true
+          servicemonitor:
+            enabled: false
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager

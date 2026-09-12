@@ -18,3 +18,15 @@ jobs:
 
       - name: Run repository security policy checks
         run: bash scripts/security-policy-check.sh
+
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Catches values the chart does not accept. Those do not fail a sync — Argo
+      # reports ComparisonError with health Healthy, so a waved root advances past
+      # an app that installed nothing.
+      - name: Render every Helm Application with its declared values
+        run: bash scripts/render-check.sh
