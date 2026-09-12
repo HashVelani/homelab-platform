@@ -105,64 +105,6 @@ text, network_policy_replacements = re.subn(pattern, replacement, text, flags=re
 if network_policy_replacements == 0:
     raise SystemExit("failed to update argocd-server-network-policy ingress rules")
 
-docs = text.split("---")
-notif_matches = [
-    i for i, d in enumerate(docs)
-    if re.search(r"^kind:\s*Deployment\s*$", d, re.M)
-    and re.search(r"^  name:\s*argocd-notifications-controller\s*$", d, re.M)
-]
-if len(notif_matches) != 1:
-    raise SystemExit(f"expected exactly 1 notifications deployment, found {len(notif_matches)}")
-
-notif_doc = docs[notif_matches[0]]
-lines = notif_doc.splitlines()
-
-notif_doc = "\n".join(lines) + "\n"
-if "        - mountPath: /home/argocd/params" not in notif_doc:
-    notif_doc, notif_mount_inserts = re.subn(
-        r"(?ms)(^        - mountPath:\s*/app/config/reposerver/mtls\s*$\n"
-        r"^          name:\s*argocd-repo-server-mtls\s*$\n)",
-        (
-            r"\1"
-            r"        - mountPath: /home/argocd/params\n"
-            r"          name: argocd-cmd-params-cm\n"
-        ),
-        notif_doc,
-        count=1,
-    )
-    if notif_mount_inserts == 0:
-        raise SystemExit("failed to insert /home/argocd/params mount in notifications controller")
-
-if not re.search(
-    r"(?ms)^      volumes:\s*$.*?"
-    r"^      - configMap:\s*$\n"
-    r"(?:^          .*$\n)*?"
-    r"^          name:\s*argocd-cmd-params-cm\s*$\n"
-    r"(?:^          .*$\n)*?"
-    r"^        name:\s*argocd-cmd-params-cm\s*$",
-    notif_doc,
-):
-    notif_doc, notif_volume_inserts = re.subn(
-        r"(?ms)(^      - name:\s*argocd-repo-server-mtls\s*$\n"
-        r"(?:^        .*$\n|^          .*$\n|^            .*$\n)*?"
-        r"^          secretName:\s*argocd-repo-server-mtls\s*$\n)",
-        (
-            r"\1"
-            r"      - configMap:\n"
-            r"          name: argocd-cmd-params-cm\n"
-            r"          optional: true\n"
-            r"        name: argocd-cmd-params-cm\n"
-        ),
-        notif_doc,
-        count=1,
-    )
-    if notif_volume_inserts == 0:
-        raise SystemExit("failed to insert argocd-cmd-params-cm volume after repo-server-mtls volume")
-lines = notif_doc.rstrip("\n").split("\n")
-
-docs[notif_matches[0]] = "\n".join(lines) + "\n"
-text = "---".join(docs)
-
 p.write_text(text)
 PY
 
