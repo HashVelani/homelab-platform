@@ -38,7 +38,11 @@ fi
 python3 - <<'PY'
 from pathlib import Path
 import sys
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    print("ERROR: PyYAML is required for scripts/security-policy-check.sh (pip install pyyaml).", file=sys.stderr)
+    sys.exit(1)
 
 text = Path("bootstrap/argocd.yaml").read_text()
 docs = [d for d in yaml.safe_load_all(text) if d]
@@ -163,7 +167,11 @@ if [[ -f platform/external-secrets.yaml ]]; then
   python3 - <<'PY'
 from pathlib import Path
 import sys
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    print("ERROR: PyYAML is required for scripts/security-policy-check.sh (pip install pyyaml).", file=sys.stderr)
+    sys.exit(1)
 
 app = yaml.safe_load(Path("platform/external-secrets.yaml").read_text())
 values = yaml.safe_load(app["spec"]["source"]["helm"]["values"]) or {}
