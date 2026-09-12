@@ -108,6 +108,68 @@ if network_policy_replacements == 0:
 p.write_text(text)
 PY
 
+# Restore the Application CRD health check. ArgoCD dropped the built-in one in
+# v1.8 and it is still gone at v3.4.5: without it every child Application reads
+# Healthy the instant it appears, so sync waves do not wait and app-of-apps
+# ordering is decorative. Baking it into the seed means a rebuilt cluster is
+# correct from minute zero, and a self-manage sync of bootstrap/argocd.yaml
+# cannot revert it out of the live ConfigMap.
+# Docs: https://argo-cd.readthedocs.io/en/stable/operator-manual/health/#argocd-app
+python3 - <<'PY'
+from pathlib import Path
+import re
+import sys
+
+KEY = "resource.customizations.health.argoproj.io_Application"
+LUA = """    hs = {}
+    hs.status = "Progressing"
+    hs.message = ""
+    if obj.status ~= nil then
+      if obj.status.health ~= nil then
+        hs.status = obj.status.health.status
+        if obj.status.health.message ~= nil then
+          hs.message = obj.status.health.message
+        end
+      end
+    end
+    return hs
+"""
+
+path = Path("argocd.yaml")
+text = path.read_text()
+docs = text.split("---")
+
+targets = [
+    i for i, d in enumerate(docs)
+    if re.search(r"^kind:\s*ConfigMap\s*$", d, re.M)
+    and re.search(r"^  name:\s*argocd-cm\s*$", d, re.M)
+]
+if len(targets) != 1:
+    print(f"ERROR: expected exactly 1 argocd-cm ConfigMap, found {len(targets)}", file=sys.stderr)
+    sys.exit(1)
+
+i = targets[0]
+doc = docs[i]
+if KEY in doc:
+    print("ok: health customization already in argocd-cm")
+    sys.exit(0)
+
+entry = f"  {KEY}: |\n{LUA}"
+if re.search(r"^data:\s*$", doc, re.M):
+    doc = re.sub(r"^data:\s*$", "data:\n" + entry.rstrip("\n"), doc, count=1, flags=re.M)
+else:
+    doc = doc.rstrip("\n") + "\ndata:\n" + entry
+
+docs[i] = doc
+path.write_text("---".join(docs))
+
+check = path.read_text()
+if check.count(KEY) != 1:
+    print(f"ERROR: expected 1 occurrence of {KEY}, got {check.count(KEY)}", file=sys.stderr)
+    sys.exit(1)
+print(f"ok: injected {KEY} into argocd-cm")
+PY
+
 if [[ -n "$(find_secret_pattern_matches argocd.yaml)" ]]; then
     echo "ERROR: possible credential-like material detected in argocd.yaml" >&2
     exit 1

@@ -9,10 +9,11 @@
 # Adopting this fixes two live drifts the seed predates: image digests and the
 # restricted argocd-server-network-policy.
 #
-# NOT YET LANDED, design §4.1: the Application health Lua is applied to the live
-# argocd-cm out of band. Bake it into build-argocd.sh and regenerate argocd.yaml
-# so rebuilds are correct from minute zero, otherwise a self-managed sync can
-# revert the ConfigMap to a seed that lacks it.
+# Design §4.1 closed: the Application health Lua is baked into build-argocd.sh
+# and present in the regenerated bootstrap/argocd.yaml, byte-identical to what
+# was patched into the live argocd-cm. Syncing this app therefore reinforces the
+# health customization instead of reverting it, and rebuilds carry it from
+# minute zero.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
