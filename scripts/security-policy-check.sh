@@ -54,53 +54,86 @@ if {} in (((policy.get("spec") or {}).get("ingress")) or []):
     print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
     sys.exit(1)
 
-notifications = next(
-    (d for d in docs if d.get("kind") == "Deployment" and d.get("metadata", {}).get("name") == "argocd-notifications-controller"),
-    None,
-)
-if notifications is None:
-    print("ERROR: argocd-notifications-controller deployment not found in bootstrap/argocd.yaml.", file=sys.stderr)
-    sys.exit(1)
+expected_repo_server_mtls = {
+    "argocd-applicationset-controller": (
+        "argocd-applicationset-controller",
+        (
+            "applicationsetcontroller.repo.server.ca.cert.path",
+            "applicationsetcontroller.repo.server.client.cert.path",
+            "applicationsetcontroller.repo.server.client.cert.key.path",
+        ),
+    ),
+    "argocd-notifications-controller": (
+        "argocd-notifications-controller",
+        (
+            "notificationscontroller.repo.server.ca.cert.path",
+            "notificationscontroller.repo.server.client.cert.path",
+            "notificationscontroller.repo.server.client.cert.key.path",
+        ),
+    ),
+    "argocd-repo-server": ("argocd-repo-server", ()),
+    "argocd-server": (
+        "argocd-server",
+        (
+            "server.repo.server.ca.cert.path",
+            "server.repo.server.client.cert.path",
+            "server.repo.server.client.cert.key.path",
+        ),
+    ),
+}
 
-pod_spec = ((((notifications.get("spec") or {}).get("template") or {}).get("spec")) or {})
-containers = pod_spec.get("containers") or []
-controller = next((c for c in containers if c.get("name") == "argocd-notifications-controller"), None)
-if controller is None:
-    print("ERROR: notifications controller container not found in deployment.", file=sys.stderr)
-    sys.exit(1)
-
-env = controller.get("env") or []
-for key in (
-    "notificationscontroller.repo.server.ca.cert.path",
-    "notificationscontroller.repo.server.client.cert.path",
-    "notificationscontroller.repo.server.client.cert.key.path",
-):
-    if not any(
-        ((item.get("valueFrom") or {}).get("configMapKeyRef") or {}).get("key") == key
-        and ((item.get("valueFrom") or {}).get("configMapKeyRef") or {}).get("name") == "argocd-cmd-params-cm"
-        for item in env
-    ):
-        print(
-            "ERROR: notifications-controller cmd param is not wired via "
-            f"configMapKeyRef/name argocd-cmd-params-cm for key: {key}",
-            file=sys.stderr,
-        )
+for deployment_name, (container_name, required_keys) in expected_repo_server_mtls.items():
+    deployment = next(
+        (d for d in docs if d.get("kind") == "Deployment" and d.get("metadata", {}).get("name") == deployment_name),
+        None,
+    )
+    if deployment is None:
+        print(f"ERROR: {deployment_name} deployment not found in bootstrap/argocd.yaml.", file=sys.stderr)
         sys.exit(1)
 
-mounts = controller.get("volumeMounts") or []
-if not any(m.get("mountPath") == "/home/argocd/params" and m.get("name") == "argocd-cmd-params-cm" for m in mounts):
-    print("ERROR: notifications controller missing /home/argocd/params volumeMount.", file=sys.stderr)
-    sys.exit(1)
+    pod_spec = ((((deployment.get("spec") or {}).get("template") or {}).get("spec")) or {})
+    containers = pod_spec.get("containers") or []
+    container = next((c for c in containers if c.get("name") == container_name), None)
+    if container is None:
+        print(f"ERROR: {deployment_name} missing expected container {container_name}.", file=sys.stderr)
+        sys.exit(1)
 
-volumes = pod_spec.get("volumes") or []
-if not any(
-    v.get("name") == "argocd-cmd-params-cm"
-    and (v.get("configMap") or {}).get("name") == "argocd-cmd-params-cm"
-    and (v.get("configMap") or {}).get("optional") is True
-    for v in volumes
-):
-    print("ERROR: notifications controller missing argocd-cmd-params-cm volume.", file=sys.stderr)
-    sys.exit(1)
+    mounts = container.get("volumeMounts") or []
+    if not any(m.get("mountPath") == "/home/argocd/params" and m.get("name") == "argocd-cmd-params-cm" for m in mounts):
+        print(f"ERROR: {deployment_name} missing /home/argocd/params volumeMount.", file=sys.stderr)
+        sys.exit(1)
+
+    if not any(m.get("mountPath") == "/app/config/reposerver/mtls" and m.get("name") == "argocd-repo-server-mtls" for m in mounts):
+        print(f"ERROR: {deployment_name} missing repo-server mTLS volumeMount.", file=sys.stderr)
+        sys.exit(1)
+
+    volumes = pod_spec.get("volumes") or []
+    if not any(
+        v.get("name") == "argocd-cmd-params-cm"
+        and (v.get("configMap") or {}).get("name") == "argocd-cmd-params-cm"
+        and (v.get("configMap") or {}).get("optional") is True
+        for v in volumes
+    ):
+        print(f"ERROR: {deployment_name} missing argocd-cmd-params-cm volume.", file=sys.stderr)
+        sys.exit(1)
+
+    if not any(v.get("name") == "argocd-repo-server-mtls" for v in volumes):
+        print(f"ERROR: {deployment_name} missing argocd-repo-server-mtls volume.", file=sys.stderr)
+        sys.exit(1)
+
+    env = container.get("env") or []
+    for key in required_keys:
+        if not any(
+            ((item.get("valueFrom") or {}).get("configMapKeyRef") or {}).get("key") == key
+            and ((item.get("valueFrom") or {}).get("configMapKeyRef") or {}).get("name") == "argocd-cmd-params-cm"
+            for item in env
+        ):
+            print(
+                f"ERROR: {deployment_name} cmd param is not wired via "
+                f"configMapKeyRef/name argocd-cmd-params-cm for key: {key}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 PY
 
 # ESO must not hold cluster-wide TokenRequest rights.
