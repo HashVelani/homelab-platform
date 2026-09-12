@@ -117,17 +117,22 @@ if len(notif_matches) != 1:
 notif_doc = docs[notif_matches[0]]
 lines = notif_doc.splitlines()
 
-if "        - mountPath: /home/argocd/params" not in lines:
-    try:
-        working_dir_idx = lines.index("        workingDir: /app")
-    except ValueError as exc:
-        raise SystemExit("failed to locate notifications controller workingDir for params mount insertion") from exc
-    lines[working_dir_idx:working_dir_idx] = [
-        "        - mountPath: /home/argocd/params",
-        "          name: argocd-cmd-params-cm",
-    ]
-
 notif_doc = "\n".join(lines) + "\n"
+if "        - mountPath: /home/argocd/params" not in notif_doc:
+    notif_doc, notif_mount_inserts = re.subn(
+        r"(?ms)(^        - mountPath:\s*/app/config/reposerver/mtls\s*$\n"
+        r"^          name:\s*argocd-repo-server-mtls\s*$\n)",
+        (
+            r"\1"
+            r"        - mountPath: /home/argocd/params\n"
+            r"          name: argocd-cmd-params-cm\n"
+        ),
+        notif_doc,
+        count=1,
+    )
+    if notif_mount_inserts == 0:
+        raise SystemExit("failed to insert /home/argocd/params mount in notifications controller")
+
 if not re.search(
     r"(?ms)^      volumes:\s*$.*?"
     r"^      - configMap:\s*$\n"
@@ -153,7 +158,7 @@ if not re.search(
     )
     if notif_volume_inserts == 0:
         raise SystemExit("failed to insert argocd-cmd-params-cm volume after repo-server-mtls volume")
-    lines = notif_doc.rstrip("\n").split("\n")
+lines = notif_doc.rstrip("\n").split("\n")
 
 docs[notif_matches[0]] = "\n".join(lines) + "\n"
 text = "---".join(docs)

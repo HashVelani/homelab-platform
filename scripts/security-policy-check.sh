@@ -37,61 +37,69 @@ fi
 
 python3 - <<'PY'
 from pathlib import Path
-import re
 import sys
+import yaml
 
 text = Path("bootstrap/argocd.yaml").read_text()
-seen_policy = False
-seen_notifications = False
-for doc in text.split("---"):
-    if "kind: NetworkPolicy" not in doc or "name: argocd-server-network-policy" not in doc:
-        pass
-    else:
-        seen_policy = True
-        if re.search(r'^\s*-\s*\{\}\s*$', doc, re.M):
-            print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
-            sys.exit(1)
+docs = [d for d in yaml.safe_load_all(text) if d]
 
-    if "kind: Deployment" not in doc or "name: argocd-notifications-controller" not in doc:
-        continue
-    seen_notifications = True
-    for key in (
-        "notificationscontroller.repo.server.ca.cert.path",
-        "notificationscontroller.repo.server.client.cert.path",
-        "notificationscontroller.repo.server.client.cert.key.path",
-    ):
-        if not re.search(
-            rf"(?ms)configMapKeyRef:\s*$\n"
-            rf"\s*key:\s*{re.escape(key)}\s*$\n"
-            rf"\s*name:\s*argocd-cmd-params-cm\s*$",
-            doc,
-        ):
-            print(
-                "ERROR: notifications-controller cmd param is not wired via "
-                f"configMapKeyRef/name argocd-cmd-params-cm for key: {key}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-    if "mountPath: /home/argocd/params" not in doc:
-        print("ERROR: notifications controller missing /home/argocd/params volumeMount.", file=sys.stderr)
-        sys.exit(1)
-    if not re.search(
-        r"(?ms)^      volumes:\s*$.*?"
-        r"^      - configMap:\s*$\n"
-        r"(?:^          .*$\n)*?"
-        r"^          name:\s*argocd-cmd-params-cm\s*$\n"
-        r"(?:^          .*$\n)*?"
-        r"^        name:\s*argocd-cmd-params-cm\s*$",
-        doc,
-    ):
-        print("ERROR: notifications controller missing argocd-cmd-params-cm volume.", file=sys.stderr)
-        sys.exit(1)
-
-if not seen_policy:
+policy = next(
+    (d for d in docs if d.get("kind") == "NetworkPolicy" and d.get("metadata", {}).get("name") == "argocd-server-network-policy"),
+    None,
+)
+if policy is None:
     print("ERROR: argocd-server-network-policy not found in bootstrap/argocd.yaml.", file=sys.stderr)
     sys.exit(1)
-if not seen_notifications:
+if {} in (((policy.get("spec") or {}).get("ingress")) or []):
+    print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
+    sys.exit(1)
+
+notifications = next(
+    (d for d in docs if d.get("kind") == "Deployment" and d.get("metadata", {}).get("name") == "argocd-notifications-controller"),
+    None,
+)
+if notifications is None:
     print("ERROR: argocd-notifications-controller deployment not found in bootstrap/argocd.yaml.", file=sys.stderr)
+    sys.exit(1)
+
+pod_spec = ((((notifications.get("spec") or {}).get("template") or {}).get("spec")) or {})
+containers = pod_spec.get("containers") or []
+controller = next((c for c in containers if c.get("name") == "argocd-notifications-controller"), None)
+if controller is None:
+    print("ERROR: notifications controller container not found in deployment.", file=sys.stderr)
+    sys.exit(1)
+
+env = controller.get("env") or []
+for key in (
+    "notificationscontroller.repo.server.ca.cert.path",
+    "notificationscontroller.repo.server.client.cert.path",
+    "notificationscontroller.repo.server.client.cert.key.path",
+):
+    if not any(
+        ((item.get("valueFrom") or {}).get("configMapKeyRef") or {}).get("key") == key
+        and ((item.get("valueFrom") or {}).get("configMapKeyRef") or {}).get("name") == "argocd-cmd-params-cm"
+        for item in env
+    ):
+        print(
+            "ERROR: notifications-controller cmd param is not wired via "
+            f"configMapKeyRef/name argocd-cmd-params-cm for key: {key}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+mounts = controller.get("volumeMounts") or []
+if not any(m.get("mountPath") == "/home/argocd/params" and m.get("name") == "argocd-cmd-params-cm" for m in mounts):
+    print("ERROR: notifications controller missing /home/argocd/params volumeMount.", file=sys.stderr)
+    sys.exit(1)
+
+volumes = pod_spec.get("volumes") or []
+if not any(
+    v.get("name") == "argocd-cmd-params-cm"
+    and (v.get("configMap") or {}).get("name") == "argocd-cmd-params-cm"
+    and (v.get("configMap") or {}).get("optional") is True
+    for v in volumes
+):
+    print("ERROR: notifications controller missing argocd-cmd-params-cm volume.", file=sys.stderr)
     sys.exit(1)
 PY
 
