@@ -41,10 +41,18 @@ spec:
           resourceFiltersExcludeNamespaces:
             - kube-system
         features:
-          # Register every Kyverno webhook with failurePolicy Ignore. The only
-          # policy here generates PDBs — nothing is worth rejecting API writes
-          # for when Kyverno is down, or when a deleted install leaves webhook
-          # configurations behind. Revisit if validate policies arrive.
+          # Forces failurePolicy Ignore on the RESOURCE webhooks — the ones
+          # policies register for ordinary objects (Deployments here). The only
+          # policy generates PDBs; nothing is worth rejecting API writes for when
+          # Kyverno is down, or when a deleted install leaves webhooks behind.
+          #
+          # It does NOT cover Kyverno's own config webhooks. Observed after the
+          # wave-10 sync on 2026-09-12: policy, exception, cel-exception,
+          # cleanup and global-context webhooks stay Fail, but every one matches
+          # only kyverno.io / policies.kyverno.io resources, so a down Kyverno
+          # blocks edits to Kyverno policies and nothing else. The two webhooks
+          # with wider rules are Ignore: ttl (all resources) and verify (leases).
+          # Revisit if validate policies arrive.
           forceFailurePolicyIgnore:
             enabled: true
         # webhooksCleanup (chart default, enabled) renders helm pre-delete Jobs;

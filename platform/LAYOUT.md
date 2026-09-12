@@ -17,7 +17,7 @@ wave 7  platform/cilium.yaml
 wave 8  staging/cilium-lb.yaml   (NOT under root) → manifests/cilium/*
 wave 9  staging/istio-gateway.yaml (NOT under root)
 wave 10 platform/kyverno.yaml
-wave 11 staging/kyverno-policies.yaml (NOT under root) → manifests/kyverno/*
+wave 11 platform/kyverno-policies.yaml   → manifests/kyverno/*
 ```
 
 Order rationale and risk table: [`README.md`](./README.md). This is a live
