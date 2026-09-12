@@ -3,21 +3,9 @@
 # emptyDir persistence until Longhorn lands — metrics do not survive a pod
 # restart, and that is the accepted tradeoff for now (design §0).
 #
-# Grafana admin password: never in this public repo. It comes from AWS Secrets
-# Manager (dc-c8a8/grafana/admin, JSON keys username/password) through the
-# ExternalSecret in extraManifests below, into the Secret grafana-admin.
-#
-# Why not the chart-generated secret: with no password set, the grafana subchart
-# mints a random one on EVERY render. Each Argo re-render rewrote
-# kube-prometheus-stack-grafana with a new password, and checksum/secret rolled
-# the pod — ReplicaSets at 18:16, 18:52, 21:48 and 22:40 on 2026-09-12. With
-# persistence off, each restart also started Grafana from an empty database.
-# Setting admin.existingSecret stops the chart rendering that Secret at all.
-#
-# The AWS secret must exist BEFORE this syncs: until the ExternalSecret resolves,
-# grafana-admin does not exist and the Grafana pod cannot start. Rotating the
-# value in AWS updates the Secret within refreshInterval but does not restart
-# Grafana — delete the pod to pick it up.
+# Grafana admin password: deliberately NOT set here. This repo is public and
+# stays credential-free. Use the chart-generated secret for now and move to an
+# ESO-minted secret (dc-c8a8/grafana/admin) once the store is Ready.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -41,36 +29,6 @@ spec:
           enabled: true
           persistence:
             enabled: false
-          admin:
-            existingSecret: grafana-admin
-            userKey: admin-user
-            passwordKey: admin-password
-        # Rendered with this chart rather than under manifests/external-secrets
-        # (wave 1): the monitoring namespace is created by this app at wave 5, so a
-        # wave-1 ExternalSecret here would fail on a fresh rebuild and park root.
-        extraManifests:
-          - apiVersion: external-secrets.io/v1
-            kind: ExternalSecret
-            metadata:
-              name: grafana-admin
-              namespace: monitoring
-            spec:
-              refreshInterval: 1h
-              secretStoreRef:
-                kind: ClusterSecretStore
-                name: aws
-              target:
-                name: grafana-admin
-                creationPolicy: Owner
-              data:
-                - secretKey: admin-user
-                  remoteRef:
-                    key: dc-c8a8/grafana/admin
-                    property: username
-                - secretKey: admin-password
-                  remoteRef:
-                    key: dc-c8a8/grafana/admin
-                    property: password
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
