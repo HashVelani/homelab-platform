@@ -33,6 +33,24 @@ spec:
     server: https://kubernetes.default.svc
     namespace: monitoring
   syncPolicy:
+    # node-exporter cannot run under Talos' default PSA enforcement. Talos applies
+    # `baseline:latest` to any namespace without PSA labels, and the DaemonSet is
+    # rejected outright:
+    #   violates PodSecurity "baseline:latest": host namespaces
+    #   (hostNetwork=true, hostPID=true), hostPath volumes ("proc","sys","root"),
+    #   hostPort (container "node-exporter" uses hostPort 9100)
+    # Every one of those is inherent to reading host-level metrics, so the pod
+    # cannot be made baseline-compliant — the namespace has to permit it. PSA is
+    # per-namespace, so this relaxes all of `monitoring`, which is why nothing but
+    # the monitoring stack should ever live here.
+    # audit/warn stay at baseline so a future violation is still reported.
+    # Alternative, if that trade is unwanted: nodeExporter.enabled: false in the
+    # values above, losing per-node CPU/memory/disk metrics.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/audit: baseline
+        pod-security.kubernetes.io/warn: baseline
     automated:
       prune: true
       selfHeal: true
