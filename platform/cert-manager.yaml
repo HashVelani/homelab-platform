@@ -22,6 +22,9 @@ spec:
     server: https://kubernetes.default.svc
     namespace: cert-manager
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     retry:
       limit: -1
       backoff:
@@ -30,3 +33,8 @@ spec:
         maxDuration: 10m
     syncOptions:
       - CreateNamespace=true
+      # Same reason as ESO: crds.enabled ships CRDs large enough to blow the
+      # 262144-byte last-applied-configuration ceiling under client-side apply.
+      # ESO hit exactly that on 2026-09-12; do not wait to rediscover it here
+      # now that this app syncs unattended.
+      - ServerSideApply=true
