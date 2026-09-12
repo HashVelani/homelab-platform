@@ -1,0 +1,35 @@
+# Wave 4 — istiod. Single replica, PDB off (single-tenant homelab).
+# No istio-cni yet: ingress gateway pods use the full-proxy template and need
+# no traffic redirection. Add the istio/cni chart only when app sidecar
+# injection starts — Talos PSA baseline rejects NET_ADMIN/NET_RAW in app ns.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istiod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: istiod
+    targetRevision: 1.30.3
+    helm:
+      values: |
+        pilot:
+          autoscaleEnabled: false
+          replicaCount: 1
+        global:
+          defaultPodDisruptionBudget:
+            enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m

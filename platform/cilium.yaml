@@ -1,0 +1,73 @@
+# Wave 0 — adopt the inline Talos Cilium install and add the three deltas.
+#
+# Chart 1.18.0 matches the live image (quay.io/cilium/cilium:v1.18.0) so the
+# adoption diff is the new flags, not a wipe. Values below are the live set from
+# the private repo's bootstrap/cilium-values.yaml PLUS design §7 deltas.
+#
+# DANGER (design §7): never enable automated sync + prune on an adopted CNI
+# before `argocd app diff cilium` has been read. A bad diff takes node
+# networking down. Manual sync, review, then Healthy, then consider automation.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://helm.cilium.io
+    chart: cilium
+    targetRevision: 1.18.0
+    helm:
+      values: |
+        # --- live values, verbatim from bootstrap/cilium-values.yaml ---
+        ipam:
+          mode: kubernetes
+        kubeProxyReplacement: true
+        k8sServiceHost: localhost
+        k8sServicePort: 7445
+        securityContext:
+          capabilities:
+            ciliumAgent:
+              - CHOWN
+              - KILL
+              - NET_ADMIN
+              - NET_RAW
+              - IPC_LOCK
+              - SYS_ADMIN
+              - SYS_RESOURCE
+              - DAC_OVERRIDE
+              - FOWNER
+              - SETGID
+              - SETUID
+            cleanCiliumState:
+              - NET_ADMIN
+              - SYS_ADMIN
+              - SYS_RESOURCE
+        cgroup:
+          autoMount:
+            enabled: false
+          hostRoot: /sys/fs/cgroup
+        # --- design §7 deltas: required before Istio / LB-IPAM work ---
+        socketLB:
+          hostNamespaceOnly: true   # socket LB breaks Istio redirection under KPR without this
+        cni:
+          exclusive: false          # else Cilium deletes istio-cni's chained config
+        l2announcements:
+          enabled: true             # else LB-IPAM hands out IPs nothing ARPs for
+        bpf:
+          masquerade: false         # keep off: Talos forwardKubeDNSToHost
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - ServerSideApply=true

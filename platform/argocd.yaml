@@ -1,0 +1,44 @@
+# Wave 0 — ArgoCD self-manage (design §4 wave table).
+#
+# Source is this repo's own bootstrap/argocd.yaml — the same pinned, hardened
+# manifest Talos seeded from, so adoption is byte-faithful rather than a
+# chart-vs-raw-manifest rewrite. directory.include selects ONLY argocd.yaml:
+# root-app.yaml lives in the same directory and must not be owned by a child
+# (root would then own itself).
+#
+# Adopting this fixes two live drifts the seed predates: image digests and the
+# restricted argocd-server-network-policy.
+#
+# NOT YET LANDED, design §4.1: the Application health Lua is applied to the live
+# argocd-cm out of band. Bake it into build-argocd.sh and regenerate argocd.yaml
+# so rebuilds are correct from minute zero, otherwise a self-managed sync can
+# revert the ConfigMap to a seed that lacks it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/HashVelani/homelab-platform
+    targetRevision: main
+    path: bootstrap
+    directory:
+      recurse: false
+      include: "argocd.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  # No syncPolicy.automated — manual sync only until the diff is reviewed (step 4).
+  syncPolicy:
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - ServerSideApply=true
