@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Renders every Helm-sourced Application in platform/ with `helm template`, using
+# Renders every Helm-sourced Application in platform/ AND staging/ with
+# `helm template`, using
 # the exact chart, version and values the Application declares.
 #
 # Why: a values key the chart does not accept is not a sync failure — it is a
@@ -28,7 +29,7 @@ import yaml
 
 out = Path(sys.argv[1])
 rows = []
-for f in sorted(Path("platform").glob("*.yaml")):
+for f in sorted(Path("platform").glob("*.yaml")) + sorted(Path("staging").glob("*.yaml")):
     app = yaml.safe_load(f.read_text())
     if not app or app.get("kind") != "Application":
         continue
