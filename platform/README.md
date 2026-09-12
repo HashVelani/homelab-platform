@@ -73,7 +73,9 @@ the cluster arrives as a commit.
 - **Waves 6–7 deliberately do not.** `argocd` and `cilium` sit permanently
   `OutOfSync`, synced by hand from the **Argo UI or `argocd app sync`** after
   reading the diff.
-- **Waves 8–11 are not in this directory at all** — see [`../staging/`](../staging/).
+- **Wave 10 (`kyverno`) carries `syncPolicy.automated`** like waves 0–5: new
+  namespace, webhooks forced to Ignore and never shown kube-system.
+- **Waves 8, 9 and 11 are not in this directory at all** — see [`../staging/`](../staging/).
 
 ### What actually blocks a wave (learned the hard way)
 

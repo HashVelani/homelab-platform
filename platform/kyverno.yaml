@@ -1,9 +1,11 @@
 # Wave 10 — Kyverno, for now only to generate PodDisruptionBudgets
 # (manifests/kyverno, wave 11). Additive: new namespace, no policies of its own.
 #
-# Why staged rather than in platform/: a new chart's resources are Missing until
-# synced, and a Missing child parks root (staging/README.md). Promote it when you
-# are ready to watch it come up.
+# Promoted from staging/ on its own, ahead of its policies. Automated sync, so
+# root parks on it only until the chart comes up Healthy; if it does not, root
+# stops delivering every later commit to platform/ (staging/README.md) — watch
+# `kubectl -n kyverno get pods` after merge. kyverno-policies stays staged
+# until this is Healthy: its GeneratingPolicy CRD is created here.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
