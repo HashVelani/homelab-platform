@@ -55,7 +55,17 @@ if {} in (((policy.get("spec") or {}).get("ingress")) or []):
     sys.exit(1)
 
 expected_repo_server_mtls = {
+    "argocd-application-controller": (
+        "StatefulSet",
+        "argocd-application-controller",
+        (
+            "controller.repo.server.ca.cert.path",
+            "controller.repo.server.client.cert.path",
+            "controller.repo.server.client.cert.key.path",
+        ),
+    ),
     "argocd-applicationset-controller": (
+        "Deployment",
         "argocd-applicationset-controller",
         (
             "applicationsetcontroller.repo.server.ca.cert.path",
@@ -64,6 +74,7 @@ expected_repo_server_mtls = {
         ),
     ),
     "argocd-notifications-controller": (
+        "Deployment",
         "argocd-notifications-controller",
         (
             "notificationscontroller.repo.server.ca.cert.path",
@@ -71,8 +82,9 @@ expected_repo_server_mtls = {
             "notificationscontroller.repo.server.client.cert.key.path",
         ),
     ),
-    "argocd-repo-server": ("argocd-repo-server", ()),
+    "argocd-repo-server": ("Deployment", "argocd-repo-server", ()),
     "argocd-server": (
+        "Deployment",
         "argocd-server",
         (
             "server.repo.server.ca.cert.path",
@@ -82,29 +94,29 @@ expected_repo_server_mtls = {
     ),
 }
 
-for deployment_name, (container_name, required_keys) in expected_repo_server_mtls.items():
+for workload_name, (workload_kind, container_name, required_keys) in expected_repo_server_mtls.items():
     deployment = next(
-        (d for d in docs if d.get("kind") == "Deployment" and d.get("metadata", {}).get("name") == deployment_name),
+        (d for d in docs if d.get("kind") == workload_kind and d.get("metadata", {}).get("name") == workload_name),
         None,
     )
     if deployment is None:
-        print(f"ERROR: {deployment_name} deployment not found in bootstrap/argocd.yaml.", file=sys.stderr)
+        print(f"ERROR: {workload_kind} {workload_name} not found in bootstrap/argocd.yaml.", file=sys.stderr)
         sys.exit(1)
 
     pod_spec = ((((deployment.get("spec") or {}).get("template") or {}).get("spec")) or {})
     containers = pod_spec.get("containers") or []
     container = next((c for c in containers if c.get("name") == container_name), None)
     if container is None:
-        print(f"ERROR: {deployment_name} missing expected container {container_name}.", file=sys.stderr)
+        print(f"ERROR: {workload_name} missing expected container {container_name}.", file=sys.stderr)
         sys.exit(1)
 
     mounts = container.get("volumeMounts") or []
     if not any(m.get("mountPath") == "/home/argocd/params" and m.get("name") == "argocd-cmd-params-cm" for m in mounts):
-        print(f"ERROR: {deployment_name} missing /home/argocd/params volumeMount.", file=sys.stderr)
+        print(f"ERROR: {workload_name} missing /home/argocd/params volumeMount.", file=sys.stderr)
         sys.exit(1)
 
     if not any(m.get("mountPath") == "/app/config/reposerver/mtls" and m.get("name") == "argocd-repo-server-mtls" for m in mounts):
-        print(f"ERROR: {deployment_name} missing repo-server mTLS volumeMount.", file=sys.stderr)
+        print(f"ERROR: {workload_name} missing repo-server mTLS volumeMount.", file=sys.stderr)
         sys.exit(1)
 
     volumes = pod_spec.get("volumes") or []
@@ -114,11 +126,11 @@ for deployment_name, (container_name, required_keys) in expected_repo_server_mtl
         and (v.get("configMap") or {}).get("optional") is True
         for v in volumes
     ):
-        print(f"ERROR: {deployment_name} missing argocd-cmd-params-cm volume.", file=sys.stderr)
+        print(f"ERROR: {workload_name} missing argocd-cmd-params-cm volume.", file=sys.stderr)
         sys.exit(1)
 
     if not any(v.get("name") == "argocd-repo-server-mtls" for v in volumes):
-        print(f"ERROR: {deployment_name} missing argocd-repo-server-mtls volume.", file=sys.stderr)
+        print(f"ERROR: {workload_name} missing argocd-repo-server-mtls volume.", file=sys.stderr)
         sys.exit(1)
 
     env = container.get("env") or []
@@ -129,7 +141,7 @@ for deployment_name, (container_name, required_keys) in expected_repo_server_mtl
             for item in env
         ):
             print(
-                f"ERROR: {deployment_name} cmd param is not wired via "
+                f"ERROR: {workload_name} cmd param is not wired via "
                 f"configMapKeyRef/name argocd-cmd-params-cm for key: {key}",
                 file=sys.stderr,
             )
