@@ -16,7 +16,7 @@ wave 6  platform/argocd.yaml
 wave 7  platform/cilium.yaml
 wave 8  staging/cilium-lb.yaml   (NOT under root) → manifests/cilium/*
 wave 9  staging/istio-gateway.yaml (NOT under root)
-wave 10 staging/kyverno.yaml       (NOT under root)
+wave 10 platform/kyverno.yaml
 wave 11 staging/kyverno-policies.yaml (NOT under root) → manifests/kyverno/*
 ```
 
