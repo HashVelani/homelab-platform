@@ -55,6 +55,24 @@ spec:
           # Revisit if validate policies arrive.
           forceFailurePolicyIgnore:
             enabled: true
+        # Monitoring. Wave 10 runs after kube-prometheus-stack (wave 5), so the
+        # ServiceMonitor CRD exists when these render. The dashboard is a
+        # ConfigMap labelled grafana_dashboard=1 in this namespace; the Grafana
+        # sidecar searches every namespace.
+        admissionController:
+          serviceMonitor:
+            enabled: true
+        backgroundController:
+          serviceMonitor:
+            enabled: true
+        cleanupController:
+          serviceMonitor:
+            enabled: true
+        reportsController:
+          serviceMonitor:
+            enabled: true
+        grafana:
+          enabled: true
         # webhooksCleanup (chart default, enabled) renders helm pre-delete Jobs;
         # Argo CD maps helm.sh/hook: pre-delete to its PreDelete hook, so deleting
         # this Application removes Kyverno's webhook configurations first.

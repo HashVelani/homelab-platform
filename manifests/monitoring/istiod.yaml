@@ -1,0 +1,14 @@
+# istiod control-plane metrics (:15014, port http-monitoring). The istiod chart
+# ships no ServiceMonitor. Sidecar/gateway (envoy) metrics come later, with
+# workloads and the wave-9 gateway.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istiod
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istiod
+  endpoints:
+    - port: http-monitoring

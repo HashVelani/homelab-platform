@@ -13,6 +13,7 @@ wave 3  platform/istio-base.yaml
 wave 4  platform/istiod.yaml
 wave 5  platform/kube-prometheus-stack.yaml
 wave 6  platform/argocd.yaml
+wave 6  platform/monitoring-config.yaml   → manifests/monitoring/*
 wave 7  platform/cilium.yaml
 wave 8  staging/cilium-lb.yaml   (NOT under root) → manifests/cilium/*
 wave 9  staging/istio-gateway.yaml (NOT under root)

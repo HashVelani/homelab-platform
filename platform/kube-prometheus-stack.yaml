@@ -25,10 +25,53 @@ spec:
         prometheus:
           prometheusSpec:
             retention: 7d
+            # The chart defaults select only monitors and rules labelled
+            # release: kube-prometheus-stack, so every ServiceMonitor another app
+            # ships (external-secrets, kyverno, cilium, manifests/monitoring) was
+            # silently ignored. false = select all, in every namespace (the
+            # namespace selectors are already {}).
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            probeSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            scrapeConfigSelectorNilUsesHelmValues: false
         grafana:
           enabled: true
           persistence:
             enabled: false
+          # Dashboards for components whose charts do not ship one. Charts that
+          # do (cilium, kyverno, external-secrets) publish ConfigMaps labelled
+          # grafana_dashboard=1, which the dashboard sidecar picks up from every
+          # namespace. These are downloaded from grafana.com by an init container
+          # at pod start (cluster egress verified); pinned revisions so a
+          # re-render never changes them. No persistence is needed: they are
+          # provisioned from here on every start.
+          dashboardProviders:
+            dashboardproviders.yaml:
+              apiVersion: 1
+              providers:
+                - name: platform
+                  orgId: 1
+                  folder: Platform
+                  type: file
+                  disableDeletion: true
+                  editable: false
+                  options:
+                    path: /var/lib/grafana/dashboards/platform
+          dashboards:
+            platform:
+              argocd:
+                gnetId: 14584   # ArgoCD
+                revision: 1
+                datasource: Prometheus
+              cert-manager:
+                gnetId: 20842   # Cert-manager-Kubernetes
+                revision: 3
+                datasource: Prometheus
+              istio-control-plane:
+                gnetId: 7645    # Istio Control Plane Dashboard
+                revision: 329
+                datasource: Prometheus
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
