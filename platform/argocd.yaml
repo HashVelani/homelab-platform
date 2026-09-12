@@ -1,4 +1,4 @@
-# Wave 0 — ArgoCD self-manage (design §4 wave table).
+# Wave 6 — ArgoCD self-manage (design §4 wave table).
 #
 # Source is this repo's own bootstrap/argocd.yaml — the same pinned, hardened
 # manifest Talos seeded from, so adoption is byte-faithful rather than a
@@ -20,7 +20,7 @@ metadata:
   name: argocd
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   project: default
   source:

@@ -1,4 +1,4 @@
-# Wave 1 — LB-IPAM pool + L2 announcement policy (design §7, plan §12).
+# Wave 8 — LB-IPAM pool + L2 announcement policy (design §7, plan §12).
 # Raw CRs live under manifests/ so the root app does not double-own them.
 # Requires l2announcements.enabled from the wave-0 cilium app to be live first.
 apiVersion: argoproj.io/v1alpha1
@@ -7,7 +7,7 @@ metadata:
   name: cilium-lb
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "8"
 spec:
   project: default
   source:

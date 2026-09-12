@@ -1,4 +1,4 @@
-# Wave 5 — ingress gateway only (no egress gateway, design §4.3).
+# Wave 9 — ingress gateway only (no egress gateway, design §4.3).
 # Service type LoadBalancer: needs the wave-1 cilium-lb pool to be active or the
 # Service sits Pending with no external IP.
 #
@@ -13,7 +13,7 @@ metadata:
   name: istio-gateway
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "9"
 spec:
   project: default
   source:

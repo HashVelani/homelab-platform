@@ -1,4 +1,4 @@
-# Wave 0 — adopt the inline Talos Cilium install and add the three deltas.
+# Wave 7 — adopt the inline Talos Cilium install and add the three deltas.
 #
 # Chart 1.18.0 matches the live image (quay.io/cilium/cilium:v1.18.0) so the
 # adoption diff is the new flags, not a wipe. Values below are the live set from
@@ -13,7 +13,7 @@ metadata:
   name: cilium
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "7"
 spec:
   project: default
   source:
