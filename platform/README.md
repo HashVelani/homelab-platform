@@ -90,6 +90,28 @@ Do not mistake the gate for a safety mechanism: it is a wait-for-health, not a
 guard against applying. What keeps Cilium safe is automation being off, nothing
 else.
 
+### A failed root sync does not retry itself
+
+Argo will not re-attempt an **automated** sync for the same commit once a sync of
+that commit has failed — deliberate anti-sync-loop behaviour. Root keeps
+reconciling (`status.reconciledAt` advances) but starts no new operation, so it
+sits `Failed / OutOfSync` indefinitely.
+
+This is easy to walk into, because terminating a parked operation *is* a failure:
+root then shows `Operation terminated`, and nothing further happens on its own.
+Observed on dc-c8a8 on 2026-09-12: after the terminate, waves 0–2 had been
+applied with their new specs and waves 3–5 had not, and root stayed put.
+
+Two ways forward, and the first is preferred:
+
+1. **Land any commit on `main`.** A new revision re-arms automated sync, and root
+   applies the current tree. No imperative action, nothing outside git.
+2. `argocd app sync root` once, from the UI or CLI — a human operational action,
+   not a state change.
+
+Corollary worth remembering: a terminate is not free. It ends the block, but it
+also disarms root until the next commit.
+
 Do not patch an Application's `operation` field with `kubectl` to force a sync.
 It works, but it applies sync options that git never declared — that is how
 `CreateNamespace=true` got silently skipped during the wave-0 bringup.
