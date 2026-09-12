@@ -23,11 +23,14 @@ platform/                         # root app path
 ├── argocd.yaml                   # wave 6  — self-manage (+ Application health Lua)
 ├── cilium.yaml                   # wave 7  — adopt inline Cilium + Istio/L2 deltas
 ├── cilium-lb.yaml                # wave 8  — path: manifests/cilium
-└── istio-gateway.yaml            # wave 9  — needs the LB pool from wave 8
+├── istio-gateway.yaml            # wave 9  — needs the LB pool from wave 8
+├── kyverno.yaml                  # wave 10 — chart; webhooks forced to Ignore
+└── kyverno-policies.yaml         # wave 11 — path: manifests/kyverno
 
 manifests/                        # NOT under root path
 ├── cilium/                       # CiliumLoadBalancerIPPool + L2AnnouncementPolicy
 ├── external-secrets/             # ClusterSecretStore aws, token Role, ExternalSecrets
+├── kyverno/                      # GeneratingPolicy: PDB per multi-replica Deployment
 └── argocd/                       # ExternalSecret → repo-creds (private git only)
 ```
 
@@ -44,6 +47,8 @@ manifests/                        # NOT under root path
 | 7 | cilium | **Live CNI.** A bad diff drops node networking and takes kubectl with it |
 | 8 | cilium-lb | LB-IPAM pool + L2 announcements |
 | 9 | istio-gateway | Service stays Pending without wave 8 |
+| 10 | kyverno | New namespace; webhooks Ignore and never see kube-system |
+| 11 | kyverno-policies | Generates PDBs in kube-system — a wrong selector hangs drains |
 
 **This order deviates from `platform-design.md` §4, deliberately.** The design
 table (cilium at wave 0) describes a *fresh* build, where Cilium must exist
@@ -68,7 +73,7 @@ the cluster arrives as a commit.
 - **Waves 6–7 deliberately do not.** `argocd` and `cilium` sit permanently
   `OutOfSync`, synced by hand from the **Argo UI or `argocd app sync`** after
   reading the diff.
-- **Waves 8–9 are not in this directory at all** — see [`../staging/`](../staging/).
+- **Waves 8–11 are not in this directory at all** — see [`../staging/`](../staging/).
 
 ### What actually blocks a wave (learned the hard way)
 

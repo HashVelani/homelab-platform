@@ -1,0 +1,36 @@
+# Wave 11 — Kyverno policies (manifests/kyverno). Needs the kyverno CRDs from
+# wave 10 to exist first.
+#
+# Manual sync on purpose: generateExisting creates PDBs in kube-system the moment
+# the policy lands, and a wrong selector there is what would make a Talos upgrade
+# drain hang. Read the diff, sync, then check `kubectl get pdb -A`.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/HashVelani/homelab-platform
+    targetRevision: main
+    path: manifests/kyverno
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  # DELIBERATELY no syncPolicy.automated: first sync generates PDBs in kube-system.
+  # Sync this from the Argo UI or `argocd app sync` after reading the diff.
+  # Enabling automation here is a commit, not a kubectl patch.
+  syncPolicy:
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - SkipDryRunOnMissingResource=true

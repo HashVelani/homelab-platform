@@ -22,6 +22,12 @@ is why `argocd` and `cilium` do not block root despite being permanently
 - `cilium-lb` — the LB-IPAM pool and L2 policy do not exist until synced
 - `istio-gateway` — its LoadBalancer Service cannot get an address until `cilium-lb`
   is live, so it is Missing until then too
+- `kyverno` — a new chart; everything it renders is Missing until first sync
+- `kyverno-policies` — its GeneratingPolicy CRD does not exist until `kyverno` is
+  Healthy. Promote `kyverno` first, then this one.
+
+The Kyverno pair does not depend on waves 8–9 and can be promoted independently of
+them; root orders only the children that exist.
 
 ## Promoting one
 
