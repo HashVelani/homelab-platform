@@ -1,0 +1,44 @@
+# Wave 5 — monitoring. SSA required (the chart ships CRDs that blow the
+# kubectl.kubernetes.io/last-applied-configuration annotation size limit).
+# emptyDir persistence until Longhorn lands — metrics do not survive a pod
+# restart, and that is the accepted tradeoff for now (design §0).
+#
+# Grafana admin password: deliberately NOT set here. This repo is public and
+# stays credential-free. Use the chart-generated secret for now and move to an
+# ESO-minted secret (dc-c8a8/grafana/admin) once the store is Ready.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 87.0.0
+    helm:
+      values: |
+        # No storageSpec anywhere => emptyDir.
+        prometheus:
+          prometheusSpec:
+            retention: 7d
+        grafana:
+          enabled: true
+          persistence:
+            enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

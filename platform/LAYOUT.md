@@ -6,16 +6,21 @@ is. Application YAML is committed in a later session; until then this tree
 stays empty of syncable CRs so root remains a clean Synced handoff proof.
 
 ```
-wave 0  platform/argocd.yaml
-wave 0  platform/cilium.yaml
-wave 1  platform/external-secrets.yaml
-wave 1  platform/cilium-lb.yaml          → manifests/cilium/*
+wave 0  platform/external-secrets.yaml
+wave 1  platform/external-secrets-config.yaml   → manifests/external-secrets/*
 wave 2  platform/cert-manager.yaml
 wave 3  platform/istio-base.yaml
 wave 4  platform/istiod.yaml
-wave 5  platform/istio-gateway.yaml
-wave 6  platform/kube-prometheus-stack.yaml
+wave 5  platform/kube-prometheus-stack.yaml
+wave 6  platform/argocd.yaml
+wave 7  platform/cilium.yaml
+wave 8  platform/cilium-lb.yaml               → manifests/cilium/*
+wave 9  platform/istio-gateway.yaml
 ```
+
+Order rationale and risk table: [`README.md`](./README.md). This is a live
+cluster, so Cilium adoption is deliberately last — not wave 0 as in the design
+doc, which describes a fresh build.
 
 When adding real Applications: prefer automated sync off (or a
 `argocd.argoproj.io/compare-options: IgnoreExtraneous` / manual sync) for the

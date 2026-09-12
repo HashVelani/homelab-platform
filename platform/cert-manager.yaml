@@ -1,0 +1,32 @@
+# Wave 2 — cert-manager. crds.enabled: true is NOT the chart default.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.21.0
+    helm:
+      values: |
+        crds:
+          enabled: true
+        serviceMonitor:
+          enabled: false   # flip in the wave-6 follow-up (design step 14)
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - CreateNamespace=true

@@ -10,39 +10,54 @@ root Synced). Bucket B populates this tree — design lives in the private
 homelab repo: [`docs/platform-design.md`](https://github.com/HashVelani/homelab/blob/main/docs/platform-design.md)
 (private; 404 if you're not Hash). Do not dump secrets here. Ever.
 
-## Intended layout (commit when ready)
-
-Plain `Application` CRs only under `platform/` — **not** ApplicationSets.
-Raw CRs (ClusterSecretStore, LB pools, ExternalSecrets) live in a sibling
-`manifests/` tree so the root app does not double-own them.
+## Layout (committed)
 
 ```
 platform/                         # root app path
-├── argocd.yaml                   # wave 0  — self-manage (+ Application health Lua)
-├── cilium.yaml                   # wave 0  — adopt inline Cilium + Istio/L2 deltas
-├── external-secrets.yaml         # wave 1
-├── cilium-lb.yaml                # wave 1  — path: manifests/cilium
+├── external-secrets.yaml         # wave 0  — operator
+├── external-secrets-config.yaml  # wave 1  — path: manifests/external-secrets
 ├── cert-manager.yaml             # wave 2
 ├── istio-base.yaml               # wave 3  — sidecar CP, not ambient
 ├── istiod.yaml                   # wave 4
-├── istio-gateway.yaml            # wave 5
-└── kube-prometheus-stack.yaml    # wave 6
+├── kube-prometheus-stack.yaml    # wave 5
+├── argocd.yaml                   # wave 6  — self-manage (+ Application health Lua)
+├── cilium.yaml                   # wave 7  — adopt inline Cilium + Istio/L2 deltas
+├── cilium-lb.yaml                # wave 8  — path: manifests/cilium
+└── istio-gateway.yaml            # wave 9  — needs the LB pool from wave 8
 
 manifests/                        # NOT under root path
 ├── cilium/                       # CiliumLoadBalancerIPPool + L2AnnouncementPolicy
-├── external-secrets/             # ClusterSecretStore aws, smoke ExternalSecrets
+├── external-secrets/             # ClusterSecretStore aws, token Role, ExternalSecrets
 └── argocd/                       # ExternalSecret → repo-creds (private git only)
 ```
 
-## Sync waves (summary)
+## Sync waves
 
-| Wave | Apps |
-|---|---|
-| 0 | argocd self-manage, cilium adopt |
-| 1 | external-secrets, cilium-lb |
-| 2 | cert-manager |
-| 3–5 | istio-base → istiod → istio-gateway |
-| 6 | kube-prometheus-stack |
+| Wave | App | Risk if it goes wrong |
+|---|---|---|
+| 0 | external-secrets | New namespace; nothing depends on it |
+| 1 | external-secrets-config | Store invalid — proves the OIDC path, breaks nothing |
+| 2 | cert-manager | New namespace |
+| 3–4 | istio-base → istiod | New namespace; injection webhook matches no namespace yet |
+| 5 | kube-prometheus-stack | New namespace |
+| 6 | argocd | Argo interrupts itself mid-sync; recover by re-applying the seed |
+| 7 | cilium | **Live CNI.** A bad diff drops node networking and takes kubectl with it |
+| 8 | cilium-lb | LB-IPAM pool + L2 announcements |
+| 9 | istio-gateway | Service stays Pending without wave 8 |
+
+**This order deviates from `platform-design.md` §4, deliberately.** The design
+table (cilium at wave 0) describes a *fresh* build, where Cilium must exist
+before anything else can run. This cluster is already up with Cilium inline and
+healthy, so wave 0 buys nothing and spends the largest risk first. Reordered so
+that everything additive proves itself before the live dataplane is touched, and
+so the ESO → AWS acceptance test — the one that validates the whole OIDC design
+— lands before anything can break `kubectl`.
+
+Waves gate on health, which means **order is enforced, not advisory**: with the
+Application health Lua in `argocd-cm`, root will not create wave N+1 until every
+wave-N child reports Healthy. A child left unsynced reports Missing, so root's
+sync parks at that wave until you sync it by hand. That is the intended staging
+mechanism, not a fault.
 
 Public repo ⇒ Argo needs **no** GitHub PAT for this tree. Private Layer 2
 repos get credentials later via ESO → Secrets Manager → Argo `repo-creds`

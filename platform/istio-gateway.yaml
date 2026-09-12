@@ -1,0 +1,39 @@
+# Wave 9 — ingress gateway only (no egress gateway, design §4.3).
+# Service type LoadBalancer: needs the wave-1 cilium-lb pool to be active or the
+# Service sits Pending with no external IP.
+#
+# To pin the gateway to a fixed address from the .200-.250 pool, add:
+#   service:
+#     annotations:
+#       lbipam.cilium.io/ips: 192.168.88.200
+# Left unpinned here so the first allocation is observed, not assumed (step 12).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-gateway
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "9"
+spec:
+  project: default
+  source:
+    repoURL: https://istio-release.storage.googleapis.com/charts
+    chart: gateway
+    targetRevision: 1.30.3
+    helm:
+      values: |
+        service:
+          type: LoadBalancer
+        autoscaling:
+          enabled: false
+        replicaCount: 1
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  syncPolicy:
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m

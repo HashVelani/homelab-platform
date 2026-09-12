@@ -19,7 +19,14 @@ spec:
   project: default
   source:
     repoURL: https://github.com/HashVelani/homelab-platform # anonymous clone — the whole point
-    targetRevision: 715591a6e45add823b0f36938756c503e512f099 # immutable pin; bump intentionally after review
+    # Immutable pin; bump intentionally after review — and only to a commit that
+    # exists on main. This is read by Talos extraManifests at INSTALL time only:
+    # extraManifests are create-only, so editing this file never changes the
+    # running cluster (the live root app currently tracks main, hand-applied at
+    # bootstrap). Pinning it to a feature-branch SHA therefore fixes nothing and
+    # leaves a rebuild pointing at a commit that a squash merge never puts on
+    # main. Bump this in a follow-up commit once the merge SHA exists.
+    targetRevision: 715591a6e45add823b0f36938756c503e512f099
     path: platform
     directory:
       recurse: true
