@@ -14,8 +14,8 @@ wave 4  platform/istiod.yaml
 wave 5  platform/kube-prometheus-stack.yaml
 wave 6  platform/argocd.yaml
 wave 7  platform/cilium.yaml
-wave 8  platform/cilium-lb.yaml               → manifests/cilium/*
-wave 9  platform/istio-gateway.yaml
+wave 8  staging/cilium-lb.yaml   (NOT under root) → manifests/cilium/*
+wave 9  staging/istio-gateway.yaml (NOT under root)
 ```
 
 Order rationale and risk table: [`README.md`](./README.md). This is a live

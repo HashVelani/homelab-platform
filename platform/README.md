@@ -65,10 +65,30 @@ the cluster arrives as a commit.
 - **Waves 0–5 carry `syncPolicy.automated`** (prune + selfHeal). Argo reconciles
   them from `main` with no operator action, and drift is corrected rather than
   accumulated.
-- **Waves 6–9 deliberately do not.** Each names its reason in-file. Root creates
-  the child and parks, which is the staging mechanism — not a fault. Advance one
-  by reading its diff and syncing from the **Argo UI or `argocd app sync`**, or
-  by committing `syncPolicy.automated` onto it once the diff is understood.
+- **Waves 6–7 deliberately do not.** `argocd` and `cilium` sit permanently
+  `OutOfSync`, synced by hand from the **Argo UI or `argocd app sync`** after
+  reading the diff.
+- **Waves 8–9 are not in this directory at all** — see [`../staging/`](../staging/).
+
+### What actually blocks a wave (learned the hard way)
+
+Root waits for child **health**, not sync status. A child with automation off
+still reports **Healthy** when its target resources already exist and are healthy
+in-cluster — which is why `argocd` and `cilium` do *not* park root despite never
+being synced: both are already installed inline by Talos. Only a child whose
+resources are **Missing** blocks.
+
+That matters because root's `retry.limit` is `-1` and Argo starts no new sync
+while one is in flight: a parked root means **no commit to `platform/` reaches
+the cluster**. Root sat pinned to one revision for ~30 minutes on 2026-09-12
+while three merged PRs could not land. `root-app.yaml` is create-only via Talos
+`extraManifests`, so root's retry posture cannot be fixed from git — the fix is
+to keep Missing-resource apps out of `platform/` until you are ready to work
+them. Hence `staging/`.
+
+Do not mistake the gate for a safety mechanism: it is a wait-for-health, not a
+guard against applying. What keeps Cilium safe is automation being off, nothing
+else.
 
 Do not patch an Application's `operation` field with `kubectl` to force a sync.
 It works, but it applies sync options that git never declared — that is how
