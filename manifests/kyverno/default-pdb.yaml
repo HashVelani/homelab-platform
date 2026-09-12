@@ -1,0 +1,84 @@
+# A PodDisruptionBudget for every multi-replica Deployment.
+#
+# What this protects: evictions — `talosctl upgrade`, `kubectl drain`, node
+# maintenance. Both coredns replicas sat on cp-03 on 2026-09-12; a drain of cp-03
+# would have evicted both and taken cluster DNS with them. With maxUnavailable: 1
+# the second eviction waits until the first replica is Ready elsewhere.
+#
+# What this does NOT protect: DaemonSet rollouts. The DaemonSet controller
+# deletes pods without the Eviction API, so a PDB never limits a Cilium restart.
+# That is updateStrategy.rollingUpdate.maxUnavailable in platform/cilium.yaml.
+#
+# Design choices:
+# - maxUnavailable: 1, not minAvailable. With one replica, minAvailable: 1 would
+#   block every drain forever; maxUnavailable: 1 never does. So a Deployment
+#   scaled down to 1 after generation is harmless, not a stuck upgrade.
+# - Skipped when another PDB already selects the pods. The Eviction API refuses
+#   pods covered by more than one PDB ("more than one PodDisruptionBudget"), so a
+#   duplicate would turn a protected drain into a failing one. Charts that ship
+#   their own PDB (istiod's defaultPodDisruptionBudget, for one) keep theirs.
+# - Opt out per Deployment with the label homelab.io/generate-pdb: "false".
+# - kube-system: Kyverno's webhook never sees kube-system (chart default, kept —
+#   see staging/kyverno.yaml), so PDBs there come from generateExisting, which
+#   runs when this policy is created or changed. A NEW multi-replica Deployment in
+#   kube-system gets no PDB until the policy next changes. coredns and
+#   cilium-operator exist today and are covered.
+apiVersion: policies.kyverno.io/v1
+kind: GeneratingPolicy
+metadata:
+  name: default-pdb
+spec:
+  evaluation:
+    generateExisting:
+      enabled: true
+    synchronize:
+      enabled: true
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ['apps']
+        apiVersions: ['v1']
+        operations: ['CREATE', 'UPDATE']
+        resources: ['deployments']
+  matchConditions:
+    - name: multi-replica
+      expression: "has(object.spec.replicas) && object.spec.replicas >= 2"
+    - name: not-opted-out
+      expression: >-
+        !(has(object.metadata.labels) &&
+          'homelab.io/generate-pdb' in object.metadata.labels &&
+          object.metadata.labels['homelab.io/generate-pdb'] == 'false')
+  variables:
+    - name: pdbName
+      expression: "object.metadata.name + '-kyverno'"
+    - name: podLabels
+      expression: >-
+        has(object.spec.template.metadata.labels) ? object.spec.template.metadata.labels : {}
+    # Any PDB other than ours whose matchLabels all hold on this pod template.
+    # dyn(): resource.List returns `any`, which CEL refuses to iterate.
+    - name: foreignPdbs
+      expression: >-
+        dyn(resource.List("policy/v1", "poddisruptionbudgets", object.metadata.namespace).items).filter(p,
+          p.metadata.name != variables.pdbName &&
+          has(p.spec.selector) && has(p.spec.selector.matchLabels) &&
+          p.spec.selector.matchLabels.all(k,
+            k in variables.podLabels && variables.podLabels[k] == p.spec.selector.matchLabels[k]))
+    - name: pdb
+      expression: >-
+        [
+          {
+            "apiVersion": dyn("policy/v1"),
+            "kind": dyn("PodDisruptionBudget"),
+            "metadata": dyn({
+              "name": variables.pdbName,
+              "namespace": object.metadata.namespace,
+              "labels": dyn({"app.kubernetes.io/managed-by": "kyverno"})
+            }),
+            "spec": dyn({
+              "maxUnavailable": dyn(1),
+              "selector": dyn(object.spec.selector)
+            })
+          }
+        ]
+  generate:
+    - expression: >-
+        variables.foreignPdbs.size() > 0 ? true : generator.Apply(object.metadata.namespace, variables.pdb)

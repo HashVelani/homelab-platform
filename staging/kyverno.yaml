@@ -1,0 +1,88 @@
+# Wave 10 — Kyverno, for now only to generate PodDisruptionBudgets
+# (manifests/kyverno, wave 11). Additive: new namespace, no policies of its own.
+#
+# Why staged rather than in platform/: a new chart's resources are Missing until
+# synced, and a Missing child parks root (staging/README.md). Promote it when you
+# are ready to watch it come up.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    # Kyverno's own admission webhook mutates resources after apply; a
+    # client-side diff reports that as drift. Kyverno's Argo CD platform notes.
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
+spec:
+  project: default
+  source:
+    repoURL: https://kyverno.github.io/kyverno
+    chart: kyverno
+    targetRevision: 3.9.1
+    helm:
+      values: |
+        config:
+          # Default true keeps the kyverno ConfigMap across upgrades, which under
+          # Argo means values changes here never reach it. Kyverno's Argo notes
+          # recommend false.
+          preserve: false
+          # The default resourceFilters drop everything in kube-system before any
+          # policy runs, including background generateExisting. coredns and
+          # cilium-operator — the only multi-replica Deployments in the cluster —
+          # both live there, so without this the policy would generate nothing.
+          #
+          # This lifts the FILTER only. The webhook namespaceSelector still
+          # excludes kube-system (chart default, not overridden), so no admission
+          # request from kube-system ever reaches Kyverno. That exclusion is what
+          # stops a down Kyverno from blocking the CNI or DNS from coming back.
+          resourceFiltersExcludeNamespaces:
+            - kube-system
+        features:
+          # Register every Kyverno webhook with failurePolicy Ignore. The only
+          # policy here generates PDBs — nothing is worth rejecting API writes
+          # for when Kyverno is down, or when a deleted install leaves webhook
+          # configurations behind. Revisit if validate policies arrive.
+          forceFailurePolicyIgnore:
+            enabled: true
+        # webhooksCleanup (chart default, enabled) renders helm pre-delete Jobs;
+        # Argo CD maps helm.sh/hook: pre-delete to its PreDelete hook, so deleting
+        # this Application removes Kyverno's webhook configurations first.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  # The four controller ClusterRoles are aggregated: the API server fills their
+  # rules from labelled ClusterRoles, so live rules never match the render.
+  ignoreDifferences:
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kyverno:admission-controller
+      jsonPointers: [/rules]
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kyverno:background-controller
+      jsonPointers: [/rules]
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kyverno:cleanup-controller
+      jsonPointers: [/rules]
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kyverno:reports-controller
+      jsonPointers: [/rules]
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - CreateNamespace=true
+      # 22 CRDs; several exceed the 262144-byte last-applied-configuration
+      # ceiling under client-side apply (same failure ESO hit on 2026-09-12).
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
