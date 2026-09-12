@@ -33,7 +33,9 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
-  # No syncPolicy.automated — manual sync only until the diff is reviewed (step 4).
+  # DELIBERATELY no syncPolicy.automated: Argo syncing its own install interrupts the controller performing the sync.
+  # Sync this from the Argo UI or `argocd app sync` after reading the diff.
+  # Enabling automation here is a commit, not a kubectl patch.
   syncPolicy:
     retry:
       limit: -1

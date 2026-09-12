@@ -19,6 +19,9 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
+  # DELIBERATELY no syncPolicy.automated: depends on l2announcements from the wave-7 cilium adoption.
+  # Sync this from the Argo UI or `argocd app sync` after reading the diff.
+  # Enabling automation here is a commit, not a kubectl patch.
   syncPolicy:
     retry:
       limit: -1

@@ -30,6 +30,9 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
+  # DELIBERATELY no syncPolicy.automated: LoadBalancer Service cannot get an address before wave 8.
+  # Sync this from the Argo UI or `argocd app sync` after reading the diff.
+  # Enabling automation here is a commit, not a kubectl patch.
   syncPolicy:
     retry:
       limit: -1

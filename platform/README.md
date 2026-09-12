@@ -55,9 +55,24 @@ so the ESO → AWS acceptance test — the one that validates the whole OIDC des
 
 Waves gate on health, which means **order is enforced, not advisory**: with the
 Application health Lua in `argocd-cm`, root will not create wave N+1 until every
-wave-N child reports Healthy. A child left unsynced reports Missing, so root's
-sync parks at that wave until you sync it by hand. That is the intended staging
-mechanism, not a fault.
+wave-N child reports Healthy.
+
+## How a wave is advanced
+
+Nothing here is applied by hand. `kubectl` is for reading state; every change to
+the cluster arrives as a commit.
+
+- **Waves 0–5 carry `syncPolicy.automated`** (prune + selfHeal). Argo reconciles
+  them from `main` with no operator action, and drift is corrected rather than
+  accumulated.
+- **Waves 6–9 deliberately do not.** Each names its reason in-file. Root creates
+  the child and parks, which is the staging mechanism — not a fault. Advance one
+  by reading its diff and syncing from the **Argo UI or `argocd app sync`**, or
+  by committing `syncPolicy.automated` onto it once the diff is understood.
+
+Do not patch an Application's `operation` field with `kubectl` to force a sync.
+It works, but it applies sync options that git never declared — that is how
+`CreateNamespace=true` got silently skipped during the wave-0 bringup.
 
 Public repo ⇒ Argo needs **no** GitHub PAT for this tree. Private Layer 2
 repos get credentials later via ESO → Secrets Manager → Argo `repo-creds`
