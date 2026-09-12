@@ -33,6 +33,14 @@ spec:
       enabled: true
     synchronize:
       enabled: true
+  # Explicit default (10s). It is here to change the spec: generateExisting only
+  # runs when the policy is created or its spec changes, and the first run on
+  # 2026-09-12 failed on RBAC (fixed by pdb-generator-rbac.yaml). Granting the
+  # permission afterwards does not retry, so coredns and cilium-operator had no
+  # PDB until the policy changed. If generation fails again after a fix, bump
+  # something here the same way.
+  webhookConfiguration:
+    timeoutSeconds: 10
   matchConstraints:
     resourceRules:
       - apiGroups: ['apps']
