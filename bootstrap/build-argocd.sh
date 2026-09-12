@@ -137,23 +137,23 @@ if not re.search(
     r"^        name:\s*argocd-cmd-params-cm\s*$",
     notif_doc,
 ):
-    try:
-        mtls_idx = lines.index("      - name: argocd-repo-server-mtls")
-    except ValueError as exc:
-        raise SystemExit("failed to locate notifications controller repo-server-mtls volume") from exc
-
-    insert_idx = len(lines)
-    for i in range(mtls_idx + 1, len(lines)):
-        if lines[i].startswith("      - "):
-            insert_idx = i
-            break
-
-    lines[insert_idx:insert_idx] = [
-        "      - configMap:",
-        "          name: argocd-cmd-params-cm",
-        "          optional: true",
-        "        name: argocd-cmd-params-cm",
-    ]
+    notif_doc, notif_volume_inserts = re.subn(
+        r"(?ms)(^      - name:\s*argocd-repo-server-mtls\s*$\n"
+        r"(?:^        .*$\n|^          .*$\n|^            .*$\n)*?"
+        r"^          secretName:\s*argocd-repo-server-mtls\s*$\n)",
+        (
+            r"\1"
+            r"      - configMap:\n"
+            r"          name: argocd-cmd-params-cm\n"
+            r"          optional: true\n"
+            r"        name: argocd-cmd-params-cm\n"
+        ),
+        notif_doc,
+        count=1,
+    )
+    if notif_volume_inserts == 0:
+        raise SystemExit("failed to insert argocd-cmd-params-cm volume after repo-server-mtls volume")
+    lines = notif_doc.rstrip("\n").split("\n")
 
 docs[notif_matches[0]] = "\n".join(lines) + "\n"
 text = "---".join(docs)
