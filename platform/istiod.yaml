@@ -26,6 +26,15 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
+  # Same as istio-base: istiod flips this webhook's failurePolicy from Ignore to
+  # Fail once it can serve validation. Left unignored, selfHeal fights istiod
+  # forever and each revert briefly makes admission validation fail-open.
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      name: istio-validator-istio-system
+      jqPathExpressions:
+        - .webhooks[].failurePolicy
   syncPolicy:
     automated:
       prune: true

@@ -19,6 +19,17 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
+  # istiod patches its validating webhook from failurePolicy: Ignore (what the
+  # chart renders) to Fail, once it can actually serve validation. That is
+  # deliberate Istio self-hardening, not drift — but with selfHeal: true Argo
+  # reverts it and istiod re-patches it, forever. Each revert briefly downgrades
+  # admission validation to fail-open, so the loop is worse than cosmetic.
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      name: istiod-default-validator
+      jqPathExpressions:
+        - .webhooks[].failurePolicy
   syncPolicy:
     automated:
       prune: true
