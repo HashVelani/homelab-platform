@@ -100,6 +100,16 @@ replacement = (
     r"      protocol: TCP\n"
     r"    - port: 8083\n"
     r"      protocol: TCP\n"
+    # Prometheus (kube-prometheus-stack, namespace monitoring) scrapes the
+    # argocd-server-metrics Service on 8083 via manifests/monitoring/argocd.yaml.
+    # Metrics port only — the API/UI port 8080 stays argocd-namespace-only.
+    r"  - from:\n"
+    r"    - namespaceSelector:\n"
+    r"        matchLabels:\n"
+    r"          kubernetes.io/metadata.name: monitoring\n"
+    r"    ports:\n"
+    r"    - port: 8083\n"
+    r"      protocol: TCP\n"
 )
 text, network_policy_replacements = re.subn(pattern, replacement, text, flags=re.M)
 if network_policy_replacements == 0:
