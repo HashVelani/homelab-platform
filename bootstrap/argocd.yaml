@@ -32225,6 +32225,10 @@ spec:
           optional: true
           secretName: argocd-repo-server-mtls
       - configMap:
+          name: argocd-cmd-params-cm
+          optional: true
+        name: argocd-cmd-params-cm
+      - configMap:
           items:
           - key: applicationsetcontroller.profile.enabled
             path: profiler.enabled
@@ -32464,6 +32468,8 @@ spec:
           name: argocd-repo-server-tls
         - mountPath: /app/config/reposerver/mtls
           name: argocd-repo-server-mtls
+        - mountPath: /home/argocd/params
+          name: argocd-cmd-params-cm
         workingDir: /app
       nodeSelector:
         kubernetes.io/os: linux
@@ -32498,6 +32504,10 @@ spec:
             path: server-ca.crt
           optional: true
           secretName: argocd-repo-server-mtls
+      - configMap:
+          name: argocd-cmd-params-cm
+          optional: true
+        name: argocd-cmd-params-cm
 ---
 apiVersion: apps/v1
 kind: Deployment

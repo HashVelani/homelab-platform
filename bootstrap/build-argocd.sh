@@ -105,6 +105,37 @@ text, network_policy_replacements = re.subn(pattern, replacement, text, flags=re
 if network_policy_replacements == 0:
     raise SystemExit("failed to update argocd-server-network-policy ingress rules")
 
+notif_mount_pattern = (
+    r"(name:\s*argocd-notifications-controller[\s\S]*?"
+    r"- mountPath:\s*/app/config/reposerver/mtls\s*\n"
+    r"\s*name:\s*argocd-repo-server-mtls\s*\n)"
+    r"(\s*workingDir:\s*/app\s*\n)"
+)
+notif_mount_repl = (
+    r"\1"
+    r"        - mountPath: /home/argocd/params\n"
+    r"          name: argocd-cmd-params-cm\n"
+    r"\2"
+)
+text, notif_mount_replacements = re.subn(notif_mount_pattern, notif_mount_repl, text, flags=re.M)
+if notif_mount_replacements == 0:
+    raise SystemExit("failed to add argocd-cmd-params-cm mount to notifications controller")
+
+notif_volume_pattern = (
+    r"(name:\s*argocd-notifications-controller[\s\S]*?"
+    r"secretName:\s*argocd-repo-server-mtls\s*\n)"
+)
+notif_volume_repl = (
+    r"\1"
+    r"      - configMap:\n"
+    r"          name: argocd-cmd-params-cm\n"
+    r"          optional: true\n"
+    r"        name: argocd-cmd-params-cm\n"
+)
+text, notif_volume_replacements = re.subn(notif_volume_pattern, notif_volume_repl, text, flags=re.M)
+if notif_volume_replacements == 0:
+    raise SystemExit("failed to add argocd-cmd-params-cm volume to notifications controller")
+
 p.write_text(text)
 PY
 
