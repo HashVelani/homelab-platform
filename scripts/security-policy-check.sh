@@ -60,8 +60,17 @@ for doc in text.split("---"):
         "notificationscontroller.repo.server.client.cert.path",
         "notificationscontroller.repo.server.client.cert.key.path",
     ):
-        if f"key: {key}" not in doc:
-            print(f"ERROR: missing notifications-controller cmd param key: {key}", file=sys.stderr)
+        if not re.search(
+            rf"(?ms)configMapKeyRef:\s*$\n"
+            rf"\s*key:\s*{re.escape(key)}\s*$\n"
+            rf"\s*name:\s*argocd-cmd-params-cm\s*$",
+            doc,
+        ):
+            print(
+                "ERROR: notifications-controller cmd param is not wired via "
+                f"configMapKeyRef/name argocd-cmd-params-cm for key: {key}",
+                file=sys.stderr,
+            )
             sys.exit(1)
     if "mountPath: /home/argocd/params" not in doc:
         print("ERROR: notifications controller missing /home/argocd/params volumeMount.", file=sys.stderr)

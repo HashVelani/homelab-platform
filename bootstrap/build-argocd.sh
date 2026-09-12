@@ -127,7 +127,11 @@ if "        - mountPath: /home/argocd/params" not in lines:
         "          name: argocd-cmd-params-cm",
     ]
 
-if not any(line == "        name: argocd-cmd-params-cm" and idx > 0 and lines[idx - 1] == "      - configMap:" for idx, line in enumerate(lines)):
+notif_doc = "\n".join(lines) + "\n"
+if not re.search(
+    r"(?ms)^\s*-\s*configMap:\s*$\n(?:^\s+.*$\n)*?^\s*name:\s*argocd-cmd-params-cm\s*$",
+    notif_doc,
+):
     try:
         volumes_idx = lines.index("      volumes:")
     except ValueError as exc:
