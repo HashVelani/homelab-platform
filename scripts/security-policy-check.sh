@@ -49,6 +49,64 @@ for doc in text.split("---"):
         sys.exit(1)
 PY
 
+# ESO must not hold cluster-wide TokenRequest rights.
+#
+# Chart external-secrets defaults rbac.serviceAccountTokenCreate=true, which puts
+# `create` on `serviceaccounts/token` — no resourceNames — into the CLUSTER role
+# external-secrets-controller. ESO picks its IAM role from a ServiceAccount
+# annotation, so minting a token for any SA in any namespace is a path to
+# assuming any role those SAs point at. We set it false and grant a namespaced
+# Role scoped to the external-secrets SA instead.
+#
+# This check exists because the failure is silent: a chart bump or a dropped
+# value re-opens it with no error anywhere.
+if [[ -f platform/external-secrets.yaml ]]; then
+  python3 - <<'PY'
+from pathlib import Path
+import sys
+import yaml
+
+app = yaml.safe_load(Path("platform/external-secrets.yaml").read_text())
+values = yaml.safe_load(app["spec"]["source"]["helm"]["values"]) or {}
+setting = (values.get("rbac") or {}).get("serviceAccountTokenCreate")
+
+if setting is not False:
+    print(
+        "ERROR: platform/external-secrets.yaml must set rbac.serviceAccountTokenCreate: false "
+        f"(found: {setting!r}). The chart default grants the ESO ClusterRole create on "
+        "serviceaccounts/token cluster-wide.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+role = Path("manifests/external-secrets/serviceaccount-token-rbac.yaml")
+if not role.is_file():
+    print(
+        "ERROR: rbac.serviceAccountTokenCreate is false but "
+        "manifests/external-secrets/serviceaccount-token-rbac.yaml is missing — "
+        "ESO cannot mint its own token and the AWS store will never authenticate.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+for doc in yaml.safe_load_all(role.read_text()):
+    if not doc or doc.get("kind") != "Role":
+        continue
+    for rule in doc.get("rules", []):
+        if "serviceaccounts/token" in (rule.get("resources") or []):
+            if not rule.get("resourceNames"):
+                print(
+                    "ERROR: the serviceaccounts/token rule must carry resourceNames. "
+                    "TokenRequest is a subresource, so the parent name is in the request "
+                    "path and resourceNames IS enforced; without it the Role mints tokens "
+                    "for every ServiceAccount in the namespace.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+print("ok: ESO token-minting is scoped, not cluster-wide")
+PY
+fi
+
 # High-signal secret patterns (kept strict to reduce false positives).
 secret_matches_file="$(mktemp)"
 trap 'rm -f "$secret_matches_file"' EXIT
