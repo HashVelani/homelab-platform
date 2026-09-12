@@ -75,7 +75,9 @@ the cluster arrives as a commit.
   reading the diff.
 - **Wave 10 (`kyverno`) carries `syncPolicy.automated`** like waves 0–5: new
   namespace, webhooks forced to Ignore and never shown kube-system.
-- **Waves 8, 9 and 11 are not in this directory at all** — see [`../staging/`](../staging/).
+- **Wave 11 (`kyverno-policies`) does not** — its first sync writes PDBs into
+  kube-system, so it is synced by hand after reading the diff.
+- **Waves 8 and 9 are not in this directory at all** — see [`../staging/`](../staging/).
 
 ### What actually blocks a wave (learned the hard way)
 

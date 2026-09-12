@@ -4,6 +4,10 @@
 # Manual sync on purpose: generateExisting creates PDBs in kube-system the moment
 # the policy lands, and a wrong selector there is what would make a Talos upgrade
 # drain hang. Read the diff, sync, then check `kubectl get pdb -A`.
+#
+# Under root, this child is Missing until that manual sync, so root parks on it
+# after merge: no later commit to platform/ lands until it is synced and Healthy.
+# Sync promptly (staging/README.md).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
