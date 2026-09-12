@@ -129,7 +129,12 @@ if "        - mountPath: /home/argocd/params" not in lines:
 
 notif_doc = "\n".join(lines) + "\n"
 if not re.search(
-    r"(?ms)^\s*-\s*configMap:\s*$\n(?:^\s+.*$\n)*?^\s*name:\s*argocd-cmd-params-cm\s*$",
+    r"(?ms)^      volumes:\s*$.*?"
+    r"^      - configMap:\s*$\n"
+    r"(?:^          .*$\n)*?"
+    r"^          name:\s*argocd-cmd-params-cm\s*$\n"
+    r"(?:^          .*$\n)*?"
+    r"^        name:\s*argocd-cmd-params-cm\s*$",
     notif_doc,
 ):
     try:

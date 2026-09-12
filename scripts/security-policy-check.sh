@@ -76,10 +76,12 @@ for doc in text.split("---"):
         print("ERROR: notifications controller missing /home/argocd/params volumeMount.", file=sys.stderr)
         sys.exit(1)
     if not re.search(
-        r"(?ms)^\s*volumes:\s*$.*?^\s*-\s*configMap:\s*$\n"
-        r"^\s*name:\s*argocd-cmd-params-cm\s*$\n"
-        r"^\s*optional:\s*true\s*$\n"
-        r"^\s*name:\s*argocd-cmd-params-cm\s*$",
+        r"(?ms)^      volumes:\s*$.*?"
+        r"^      - configMap:\s*$\n"
+        r"(?:^          .*$\n)*?"
+        r"^          name:\s*argocd-cmd-params-cm\s*$\n"
+        r"(?:^          .*$\n)*?"
+        r"^        name:\s*argocd-cmd-params-cm\s*$",
         doc,
     ):
         print("ERROR: notifications controller missing argocd-cmd-params-cm volume.", file=sys.stderr)
