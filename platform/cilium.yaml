@@ -85,6 +85,26 @@ spec:
           tls:
             auto:
               method: cronJob
+        # --- rollout: one node at a time ---
+        # Chart default is maxUnavailable: 2 (maxSurge 0) for both DaemonSets. On
+        # a 3-node cluster that restarts 2 of 3 agents at once — observed on
+        # 2026-09-12, when the Argo UI Restart action that activated the §7
+        # deltas took cp-01 and cp-02 down together. A bad flag should cost one
+        # node, not two.
+        #
+        # A PodDisruptionBudget cannot do this job: the DaemonSet controller
+        # deletes pods directly rather than through the Eviction API, and drains
+        # skip DaemonSet pods anyway. Only updateStrategy governs a rollout.
+        #
+        # Syncing this changes spec.updateStrategy only, not the pod template, so
+        # it restarts nothing.
+        updateStrategy:
+          rollingUpdate:
+            maxUnavailable: 1
+        envoy:
+          updateStrategy:
+            rollingUpdate:
+              maxUnavailable: 1
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
