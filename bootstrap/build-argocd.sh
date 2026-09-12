@@ -138,13 +138,13 @@ if not re.search(
     notif_doc,
 ):
     try:
-        volumes_idx = lines.index("      volumes:")
+        mtls_idx = lines.index("      - name: argocd-repo-server-mtls")
     except ValueError as exc:
-        raise SystemExit("failed to locate notifications controller volumes section") from exc
+        raise SystemExit("failed to locate notifications controller repo-server-mtls volume") from exc
 
     insert_idx = len(lines)
-    for i in range(volumes_idx + 1, len(lines)):
-        if lines[i] and not lines[i].startswith("      "):
+    for i in range(mtls_idx + 1, len(lines)):
+        if lines[i].startswith("      - "):
             insert_idx = i
             break
 
