@@ -59,6 +59,32 @@ spec:
           enabled: true             # else LB-IPAM hands out IPs nothing ARPs for
         bpf:
           masquerade: false         # keep off: Talos forwardKubeDNSToHost
+        # --- adoption safety: keep TLS material out of the Helm render ---
+        # With the default (helm) method the chart mints the Cilium CA and the
+        # Hubble server certs itself, via genCA/genSignedCert. Those are
+        # NON-DETERMINISTIC: two renders of the identical chart and values
+        # produce different key material (verified 2026-09-12 —
+        # render#1 ca.crt sha256 235380b968d2, render#2 5fdbb9d153ac).
+        #
+        # Adopting the live install under that default would not merely rotate
+        # the CA once. Every manifest regeneration yields new material, so the
+        # app is permanently OutOfSync and selfHeal rewrites the cluster PKI on
+        # each pass. bootstrap-plan.md §"Cilium 1.18.0 ... produces a cilium-ca
+        # Secret carrying the CA private key" flagged the secrets; it did not
+        # catch that they are regenerated.
+        #
+        # cronJob renders NO Secrets at all — cert material is generated and
+        # rotated in-cluster by hubble-generate-certs (Job + CronJob) and is
+        # never Helm-owned. The existing cilium-ca and hubble-server-certs
+        # Secrets are untouched: Argo never adopted them, so prune ignores them.
+        #
+        # certmanager is the other option and cert-manager is now Healthy at
+        # wave 2, but it needs an issuerRef and does not render bare, so it is a
+        # larger change than adoption should carry.
+        hubble:
+          tls:
+            auto:
+              method: cronJob
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
