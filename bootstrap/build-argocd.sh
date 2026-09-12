@@ -105,36 +105,49 @@ text, network_policy_replacements = re.subn(pattern, replacement, text, flags=re
 if network_policy_replacements == 0:
     raise SystemExit("failed to update argocd-server-network-policy ingress rules")
 
-notif_mount_pattern = (
-    r"(name:\s*argocd-notifications-controller[\s\S]*?"
-    r"- mountPath:\s*/app/config/reposerver/mtls\s*\n"
-    r"\s*name:\s*argocd-repo-server-mtls\s*\n)"
-    r"(\s*workingDir:\s*/app\s*\n)"
-)
-notif_mount_repl = (
-    r"\1"
-    r"        - mountPath: /home/argocd/params\n"
-    r"          name: argocd-cmd-params-cm\n"
-    r"\2"
-)
-text, notif_mount_replacements = re.subn(notif_mount_pattern, notif_mount_repl, text, flags=re.M)
-if notif_mount_replacements == 0:
-    raise SystemExit("failed to add argocd-cmd-params-cm mount to notifications controller")
+docs = text.split("---")
+notif_matches = [
+    i for i, d in enumerate(docs)
+    if re.search(r"^kind:\s*Deployment\s*$", d, re.M)
+    and re.search(r"^  name:\s*argocd-notifications-controller\s*$", d, re.M)
+]
+if len(notif_matches) != 1:
+    raise SystemExit(f"expected exactly 1 notifications deployment, found {len(notif_matches)}")
 
-notif_volume_pattern = (
-    r"(name:\s*argocd-notifications-controller[\s\S]*?"
-    r"secretName:\s*argocd-repo-server-mtls\s*\n)"
-)
-notif_volume_repl = (
-    r"\1"
-    r"      - configMap:\n"
-    r"          name: argocd-cmd-params-cm\n"
-    r"          optional: true\n"
-    r"        name: argocd-cmd-params-cm\n"
-)
-text, notif_volume_replacements = re.subn(notif_volume_pattern, notif_volume_repl, text, flags=re.M)
-if notif_volume_replacements == 0:
-    raise SystemExit("failed to add argocd-cmd-params-cm volume to notifications controller")
+notif_doc = docs[notif_matches[0]]
+lines = notif_doc.splitlines()
+
+if "        - mountPath: /home/argocd/params" not in lines:
+    try:
+        working_dir_idx = lines.index("        workingDir: /app")
+    except ValueError as exc:
+        raise SystemExit("failed to locate notifications controller workingDir for params mount insertion") from exc
+    lines[working_dir_idx:working_dir_idx] = [
+        "        - mountPath: /home/argocd/params",
+        "          name: argocd-cmd-params-cm",
+    ]
+
+if not any(line == "        name: argocd-cmd-params-cm" and idx > 0 and lines[idx - 1] == "      - configMap:" for idx, line in enumerate(lines)):
+    try:
+        volumes_idx = lines.index("      volumes:")
+    except ValueError as exc:
+        raise SystemExit("failed to locate notifications controller volumes section") from exc
+
+    insert_idx = len(lines)
+    for i in range(volumes_idx + 1, len(lines)):
+        if lines[i] and not lines[i].startswith("      "):
+            insert_idx = i
+            break
+
+    lines[insert_idx:insert_idx] = [
+        "      - configMap:",
+        "          name: argocd-cmd-params-cm",
+        "          optional: true",
+        "        name: argocd-cmd-params-cm",
+    ]
+
+docs[notif_matches[0]] = "\n".join(lines) + "\n"
+text = "---".join(docs)
 
 p.write_text(text)
 PY

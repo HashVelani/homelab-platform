@@ -41,12 +41,47 @@ import re
 import sys
 
 text = Path("bootstrap/argocd.yaml").read_text()
+seen_policy = False
+seen_notifications = False
 for doc in text.split("---"):
     if "kind: NetworkPolicy" not in doc or "name: argocd-server-network-policy" not in doc:
+        pass
+    else:
+        seen_policy = True
+        if re.search(r'^\s*-\s*\{\}\s*$', doc, re.M):
+            print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
+            sys.exit(1)
+
+    if "kind: Deployment" not in doc or "name: argocd-notifications-controller" not in doc:
         continue
-    if re.search(r'^\s*-\s*\{\}\s*$', doc, re.M):
-        print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
+    seen_notifications = True
+    for key in (
+        "notificationscontroller.repo.server.ca.cert.path",
+        "notificationscontroller.repo.server.client.cert.path",
+        "notificationscontroller.repo.server.client.cert.key.path",
+    ):
+        if f"key: {key}" not in doc:
+            print(f"ERROR: missing notifications-controller cmd param key: {key}", file=sys.stderr)
+            sys.exit(1)
+    if "mountPath: /home/argocd/params" not in doc:
+        print("ERROR: notifications controller missing /home/argocd/params volumeMount.", file=sys.stderr)
         sys.exit(1)
+    if not re.search(
+        r"(?ms)^\s*volumes:\s*$.*?^\s*-\s*configMap:\s*$\n"
+        r"^\s*name:\s*argocd-cmd-params-cm\s*$\n"
+        r"^\s*optional:\s*true\s*$\n"
+        r"^\s*name:\s*argocd-cmd-params-cm\s*$",
+        doc,
+    ):
+        print("ERROR: notifications controller missing argocd-cmd-params-cm volume.", file=sys.stderr)
+        sys.exit(1)
+
+if not seen_policy:
+    print("ERROR: argocd-server-network-policy not found in bootstrap/argocd.yaml.", file=sys.stderr)
+    sys.exit(1)
+if not seen_notifications:
+    print("ERROR: argocd-notifications-controller deployment not found in bootstrap/argocd.yaml.", file=sys.stderr)
+    sys.exit(1)
 PY
 
 # ESO must not hold cluster-wide TokenRequest rights.
