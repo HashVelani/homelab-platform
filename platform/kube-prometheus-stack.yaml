@@ -47,6 +47,19 @@ spec:
             probeSelectorNilUsesHelmValues: false
             ruleSelectorNilUsesHelmValues: false
             scrapeConfigSelectorNilUsesHelmValues: false
+        # Talos runs kube-controller-manager and kube-scheduler with
+        # --bind-address=127.0.0.1 (verified on cp-01..03, 2026-09-13), so their
+        # metrics ports (10257, 10259) refuse connections from Prometheus and all
+        # six targets were permanently down. Turning these off removes their
+        # Service/Endpoints, ServiceMonitors, the "Kubernetes / Controller
+        # Manager" and "Kubernetes / Scheduler" dashboards and their
+        # PrometheusRules. To monitor them instead, set bind-address: 0.0.0.0
+        # under cluster.controllerManager.extraArgs and cluster.scheduler.extraArgs
+        # in the Talos machine config, then flip these back to true.
+        kubeControllerManager:
+          enabled: false
+        kubeScheduler:
+          enabled: false
         grafana:
           enabled: true
           persistence:
