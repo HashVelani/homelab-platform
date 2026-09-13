@@ -4,10 +4,11 @@
 # Why a separate app, not each chart's serviceMonitor toggle: the
 # monitoring.coreos.com CRDs arrive with kube-prometheus-stack at wave 5.
 # cert-manager (wave 2) has no skip-if-missing mode, so its chart ServiceMonitor
-# would fail a fresh rebuild at wave 2 and park root. Argo CD is a raw manifest
+# would fail a fresh rebuild at wave 2 and park root. external-secrets (wave 0)
+# does skip when the CRD is missing, but nothing guarantees a re-render after
+# wave 5, so its target would silently never appear. Argo CD is a raw manifest
 # (bootstrap/argocd.yaml) with no ServiceMonitors at all, and istiod's chart has
-# none. Charts that render safely after wave 5 or skip when the CRD is missing
-# (external-secrets, kyverno, cilium) keep their own.
+# none. Charts that sync after wave 5 (kyverno, cilium) keep their own.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

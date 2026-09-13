@@ -73,9 +73,11 @@ the cluster arrives as a commit.
 - **Waves 0–5 carry `syncPolicy.automated`** (prune + selfHeal). Argo reconciles
   them from `main` with no operator action, and drift is corrected rather than
   accumulated.
-- **Waves 6–7 deliberately do not.** `argocd` and `cilium` sit permanently
-  `OutOfSync`, synced by hand from the **Argo UI or `argocd app sync`** after
-  reading the diff.
+- **`argocd` (wave 6) and `cilium` (wave 7) deliberately do not.** They sit
+  permanently `OutOfSync`, synced by hand from the **Argo UI or
+  `argocd app sync`** after reading the diff.
+- **`monitoring-config` (also wave 6) does carry `syncPolicy.automated`**: it
+  holds ServiceMonitors only, and a bad one costs a scrape target, not an outage.
 - **Wave 10 (`kyverno`) carries `syncPolicy.automated`** like waves 0–5: new
   namespace, webhooks forced to Ignore and never shown kube-system.
 - **Wave 11 (`kyverno-policies`) does not** — its first sync writes PDBs into
