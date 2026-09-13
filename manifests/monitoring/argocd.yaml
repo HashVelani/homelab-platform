@@ -7,6 +7,11 @@
 # the argocd namespace only, so the argocd-server target reads down until that
 # policy also admits monitoring (build-argocd.sh). The other components' metrics
 # ports already allow every namespace.
+#
+# No ServiceMonitor for argocd-dex-server. With no dex.config / oidc.config in
+# argocd-cm, Dex logs "dex is not configured" and never starts its server, so
+# nothing listens on 5558 — the target was permanently down ("connection
+# refused", observed 2026-09-13 after #27). Add it back when SSO is configured.
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -64,17 +69,5 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: argocd-notifications-controller-metrics
-  endpoints:
-    - port: metrics
----
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: argocd-dex-server
-  namespace: argocd
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: argocd-dex-server
   endpoints:
     - port: metrics
