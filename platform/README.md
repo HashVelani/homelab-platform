@@ -21,6 +21,7 @@ platform/                         # root app path
 ├── istiod.yaml                   # wave 4
 ├── kube-prometheus-stack.yaml    # wave 5
 ├── argocd.yaml                   # wave 6  — self-manage (+ Application health Lua)
+├── monitoring-config.yaml        # wave 6  — path: manifests/monitoring (ServiceMonitors)
 ├── cilium.yaml                   # wave 7  — adopt inline Cilium + Istio/L2 deltas
 ├── cilium-lb.yaml                # wave 8  — path: manifests/cilium
 ├── istio-gateway.yaml            # wave 9  — needs the LB pool from wave 8
@@ -31,6 +32,7 @@ manifests/                        # NOT under root path
 ├── cilium/                       # CiliumLoadBalancerIPPool + L2AnnouncementPolicy
 ├── external-secrets/             # ClusterSecretStore aws, token Role, ExternalSecrets
 ├── kyverno/                      # GeneratingPolicy: PDB per multi-replica Deployment
+├── monitoring/                   # ServiceMonitors: argocd, cert-manager, istiod, external-secrets
 └── argocd/                       # ExternalSecret → repo-creds (private git only)
 ```
 
@@ -44,6 +46,7 @@ manifests/                        # NOT under root path
 | 3–4 | istio-base → istiod | New namespace; injection webhook matches no namespace yet |
 | 5 | kube-prometheus-stack | New namespace |
 | 6 | argocd | Argo interrupts itself mid-sync; recover by re-applying the seed |
+| 6 | monitoring-config | ServiceMonitors only; a bad one means a missing target, not an outage |
 | 7 | cilium | **Live CNI.** A bad diff drops node networking and takes kubectl with it |
 | 8 | cilium-lb | LB-IPAM pool + L2 announcements |
 | 9 | istio-gateway | Service stays Pending without wave 8 |
@@ -70,9 +73,11 @@ the cluster arrives as a commit.
 - **Waves 0–5 carry `syncPolicy.automated`** (prune + selfHeal). Argo reconciles
   them from `main` with no operator action, and drift is corrected rather than
   accumulated.
-- **Waves 6–7 deliberately do not.** `argocd` and `cilium` sit permanently
-  `OutOfSync`, synced by hand from the **Argo UI or `argocd app sync`** after
-  reading the diff.
+- **`argocd` (wave 6) and `cilium` (wave 7) deliberately do not.** They sit
+  permanently `OutOfSync`, synced by hand from the **Argo UI or
+  `argocd app sync`** after reading the diff.
+- **`monitoring-config` (also wave 6) does carry `syncPolicy.automated`**: it
+  holds ServiceMonitors only, and a bad one costs a scrape target, not an outage.
 - **Wave 10 (`kyverno`) carries `syncPolicy.automated`** like waves 0–5: new
   namespace, webhooks forced to Ignore and never shown kube-system.
 - **Wave 11 (`kyverno-policies`) does not** — its first sync writes PDBs into

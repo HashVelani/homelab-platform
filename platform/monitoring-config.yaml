@@ -1,0 +1,41 @@
+# Wave 6 — ServiceMonitors for components whose charts cannot ship their own
+# safely (manifests/monitoring).
+#
+# Why a separate app, not each chart's serviceMonitor toggle: the
+# monitoring.coreos.com CRDs arrive with kube-prometheus-stack at wave 5.
+# cert-manager (wave 2) has no skip-if-missing mode, so its chart ServiceMonitor
+# would fail a fresh rebuild at wave 2 and park root. external-secrets (wave 0)
+# does skip when the CRD is missing, but nothing guarantees a re-render after
+# wave 5, so its target would silently never appear. Argo CD is a raw manifest
+# (bootstrap/argocd.yaml) with no ServiceMonitors at all, and istiod's chart has
+# none. Charts that sync after wave 5 (kyverno, cilium) keep their own.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-config
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/HashVelani/homelab-platform
+    targetRevision: main
+    path: manifests/monitoring
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: -1
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 10m
+    syncOptions:
+      - SkipDryRunOnMissingResource=true

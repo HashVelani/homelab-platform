@@ -1,0 +1,25 @@
+# cert-manager metrics (:9402). Not the chart's prometheus.servicemonitor toggle:
+# cert-manager syncs at wave 2, before the monitoring.coreos.com CRDs exist
+# (wave 5), and that toggle has no skip-if-missing mode — see
+# platform/monitoring-config.yaml.
+#
+# The controller and cainjector Services name the port http-metrics; the
+# webhook Service names the same port metrics. One endpoint per name; an
+# endpoint whose port a Service lacks simply yields no target for it.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+spec:
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/instance
+        operator: In
+        values: [cert-manager]
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [controller, cainjector, webhook]
+  endpoints:
+    - port: http-metrics
+    - port: metrics
