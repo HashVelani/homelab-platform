@@ -99,7 +99,10 @@ spec:
               - flow
               - port-distribution
               - icmp
-              - httpV2:exemplars=true;labelsContext=source_ip,source_namespace,source_workload,destination_ip,destination_namespace,destination_workload,traffic_direction
+              # No exemplars=true: Prometheus runs without the exemplar-storage
+              # feature and there is no tracing backend, so exemplars would be
+              # emitted and silently dropped (raised in review on PR #29).
+              - httpV2:labelsContext=source_ip,source_namespace,source_workload,destination_ip,destination_namespace,destination_workload,traffic_direction
             enableOpenMetrics: true
             serviceMonitor:
               enabled: true
