@@ -17,11 +17,12 @@ The subtlety is which children park it. A child with automation off still report
 **Healthy** if its target resources already exist and are healthy in-cluster — that
 is why `argocd` and `cilium` do not block root despite being permanently
 `OutOfSync` (both are already installed, inline). Only a child whose resources are
-**Missing** blocks, and these two are exactly that:
+**Missing** blocks, and these were exactly that:
 
 - `cilium-lb` — the LB-IPAM pool and L2 policy do not exist until synced
+  (promoted to `platform/` on 2026-09-13)
 - `istio-gateway` — its LoadBalancer Service cannot get an address until `cilium-lb`
-  is live, so it is Missing until then too
+  is live, so it is Missing until then too (still staged)
 
 ## Promoting one
 

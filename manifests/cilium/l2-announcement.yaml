@@ -1,6 +1,7 @@
 # L2 announcement — makes the pool above answer ARP on the LAN.
-# Requires l2announcements.enabled in the wave-0 cilium app.
-# enp1s0 verified on cp-01 2026-07-25 (same NIC as the Layer2VIPConfig link).
+# Requires l2announcements.enabled in the wave-7 cilium app.
+# enp1s0 verified on cp-01 2026-07-25 (same NIC as the Layer2VIPConfig link), and
+# again 2026-09-13 as the agent's KubeProxyReplacement device.
 # Only v2alpha1 is served for this kind on Cilium 1.18.
 apiVersion: cilium.io/v2alpha1
 kind: CiliumL2AnnouncementPolicy

@@ -1,6 +1,12 @@
 # Wave 8 — LB-IPAM pool + L2 announcement policy (design §7, plan §12).
 # Raw CRs live under manifests/ so the root app does not double-own them.
-# Requires l2announcements.enabled from the wave-0 cilium app to be live first.
+# Requires l2announcements.enabled from the wave-7 cilium app to be live first
+# (verified 2026-09-13: cilium-config enable-l2-announcements=true, agents on enp1s0).
+#
+# Promoted from staging/ as the first step toward ingress (Istio gateway at wave 9,
+# then external-dns). Under root, this child is Missing until its manual sync, so
+# root parks on it after merge: no later commit to platform/ lands until it is
+# synced and Healthy. Sync promptly (staging/README.md).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
