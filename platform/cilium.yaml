@@ -85,6 +85,49 @@ spec:
           tls:
             auto:
               method: cronJob
+          # --- monitoring: Hubble flow metrics (served by the agent, :9965) ---
+          # Merged INTO this hubble: block on purpose. A second top-level
+          # hubble: key would replace the one above, silently dropping
+          # tls.auto.method: cronJob and bringing back the per-render CA churn
+          # fixed in #17 — verified in a test render on 2026-09-12, which added
+          # Secret/cilium-ca and removed the hubble-generate-certs CronJob.
+          metrics:
+            enabled:
+              - dns
+              - drop
+              - tcp
+              - flow
+              - port-distribution
+              - icmp
+              - httpV2:exemplars=true;labelsContext=source_ip,source_namespace,source_workload,destination_ip,destination_namespace,destination_workload,traffic_direction
+            enableOpenMetrics: true
+            serviceMonitor:
+              enabled: true
+            dashboards:
+              enabled: true
+        # --- monitoring: agent (:9962), operator (:9963), envoy (:9964) ---
+        # Wave 7 runs after kube-prometheus-stack (wave 5), so the ServiceMonitor
+        # CRD exists; trustCRDsExist skips the chart's capability probe.
+        #
+        # Syncing this CHANGES THE AGENT POD TEMPLATE (new hostPorts 9962 and
+        # 9965), so the sync itself rolls every cilium agent — one node at a time
+        # under maxUnavailable: 1 below. cilium-operator also rolls: the chart
+        # drops its prometheus.io/* scrape annotations once a ServiceMonitor
+        # exists (kube-prometheus-stack does not use annotation scraping).
+        prometheus:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            trustCRDsExist: true
+        operator:
+          prometheus:
+            metricsService: true
+            serviceMonitor:
+              enabled: true
+          dashboards:
+            enabled: true
+        dashboards:
+          enabled: true
         # --- rollout: one node at a time ---
         # Chart default is maxUnavailable: 2 (maxSurge 0) for both DaemonSets. On
         # a 3-node cluster that restarts 2 of 3 agents at once — observed on
@@ -105,6 +148,13 @@ spec:
           updateStrategy:
             rollingUpdate:
               maxUnavailable: 1
+          # Monitoring: envoy metrics (:9964). Merged into this envoy: block, not a
+          # second top-level key (see the hubble: note above). Envoy already
+          # serves metrics; this adds only the ServiceMonitor, and its pod
+          # template is unchanged.
+          prometheus:
+            serviceMonitor:
+              enabled: true
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system
