@@ -11,7 +11,7 @@
 # No ServiceMonitor for argocd-dex-server. With no dex.config / oidc.config in
 # argocd-cm, Dex logs "dex is not configured" and never starts its server, so
 # nothing listens on 5558 — the target was permanently down ("connection
-# refused", observed 2026-09-13 after #27). Add it back when SSO is configured.
+# refused", observed 2026-09-13 after #27). Add it back when bundled Dex is configured (`dex.config`).
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
