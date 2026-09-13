@@ -32,7 +32,7 @@ manifests/                        # NOT under root path
 ├── cilium/                       # CiliumLoadBalancerIPPool + L2AnnouncementPolicy
 ├── external-secrets/             # ClusterSecretStore aws, token Role, ExternalSecrets
 ├── kyverno/                      # GeneratingPolicy: PDB per multi-replica Deployment
-├── monitoring/                   # ServiceMonitors: argocd, cert-manager, istiod
+├── monitoring/                   # ServiceMonitors: argocd, cert-manager, istiod, external-secrets
 └── argocd/                       # ExternalSecret → repo-creds (private git only)
 ```
 

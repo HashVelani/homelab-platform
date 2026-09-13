@@ -1,9 +1,10 @@
-# platform/ + manifests/ layout (stub)
+# platform/ + manifests/ layout
 
-Design-only reminder. **Do not treat this file as authority** — the private
-doc [`docs/platform-design.md`](https://github.com/HashVelani/homelab/blob/main/docs/platform-design.md)
-is. Application YAML is committed in a later session; until then this tree
-stays empty of syncable CRs so root remains a clean Synced handoff proof.
+Wave index of the live Applications under `platform/` (synced by root) and the
+two still staged under `staging/`. The design intent lives in the private doc
+[`docs/platform-design.md`](https://github.com/HashVelani/homelab/blob/main/docs/platform-design.md);
+where this file and the committed YAML disagree, the YAML is what the cluster
+runs.
 
 ```
 wave 0  platform/external-secrets.yaml

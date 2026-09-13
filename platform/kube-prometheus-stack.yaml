@@ -40,9 +40,12 @@ spec:
           persistence:
             enabled: false
           # Dashboards for components whose charts do not ship one. Charts that
-          # do (cilium, kyverno, external-secrets) publish ConfigMaps labelled
-          # grafana_dashboard=1, which the dashboard sidecar picks up from every
-          # namespace. These are downloaded from grafana.com by an init container
+          # do, and have it enabled (kyverno, external-secrets), publish ConfigMaps
+          # labelled grafana_dashboard=1, which the dashboard sidecar picks up from
+          # every namespace. Cilium's arrive the same way once its metrics change
+          # (feat/cilium-metrics) lands.
+          #
+          # The ones below are downloaded from grafana.com by an init container
           # at pod start (cluster egress verified); pinned revisions so a
           # re-render never changes them. No persistence is needed: they are
           # provisioned from here on every start.
