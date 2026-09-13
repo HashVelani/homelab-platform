@@ -105,18 +105,31 @@ spec:
               secretStoreRef:
                 kind: ClusterSecretStore
                 name: aws
+              # deletionPolicy and the three remoteRef strategies below are the
+              # ExternalSecret CRD's schema defaults, written out on purpose. The API
+              # server adds them to the live object; left implicit, Argo's diff saw
+              # them as drift, kept kube-prometheus-stack OutOfSync, and selfHeal
+              # re-synced it on every reconcile (observed 13:42-13:43 on 2026-09-13
+              # after #31). Changing them is a real behaviour change, not a no-op.
               target:
                 name: grafana-admin
                 creationPolicy: Owner
+                deletionPolicy: Retain
               data:
                 - secretKey: admin-user
                   remoteRef:
                     key: dc-c8a8/grafana/admin
                     property: username
+                    conversionStrategy: Default
+                    decodingStrategy: None
+                    metadataPolicy: None
                 - secretKey: admin-password
                   remoteRef:
                     key: dc-c8a8/grafana/admin
                     property: password
+                    conversionStrategy: Default
+                    decodingStrategy: None
+                    metadataPolicy: None
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
