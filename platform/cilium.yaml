@@ -106,6 +106,26 @@ spec:
             enableOpenMetrics: true
             serviceMonitor:
               enabled: true
+              # Three of the Hubble dashboards (DNS Overview, Network Overview,
+              # L7 HTTP by Workload) build a "cluster" variable from
+              # label_values(..., cluster) and filter every panel on it; with no
+              # such label they render empty (raised in review on PR #29).
+              # Prometheus externalLabels would not help: those are attached only
+              # on remote-write/federation/alerts, never on local queries. So the
+              # label is added at scrape time here and on the agent monitor below
+              # (cilium_version feeds two of those variables).
+              #
+              # Setting relabelings REPLACES the chart default, so its node
+              # relabeling is repeated verbatim first.
+              relabelings:
+                - sourceLabels:
+                    - __meta_kubernetes_pod_node_name
+                  targetLabel: node
+                  action: replace
+                  replacement: ${1}
+                - targetLabel: cluster
+                  action: replace
+                  replacement: dc-c8a8
             dashboards:
               enabled: true
         # --- monitoring: agent (:9962), operator (:9963), envoy (:9964) ---
@@ -122,6 +142,18 @@ spec:
           serviceMonitor:
             enabled: true
             trustCRDsExist: true
+            # cluster label for the Hubble dashboards' label_values(cilium_version,
+            # cluster) variable — see the hubble.metrics.serviceMonitor note above.
+            # Replaces the chart default, so its node relabeling is repeated.
+            relabelings:
+              - sourceLabels:
+                  - __meta_kubernetes_pod_node_name
+                targetLabel: node
+                action: replace
+                replacement: ${1}
+              - targetLabel: cluster
+                action: replace
+                replacement: dc-c8a8
         operator:
           prometheus:
             metricsService: true
