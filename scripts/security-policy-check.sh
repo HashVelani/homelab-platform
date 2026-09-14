@@ -37,16 +37,119 @@ fi
 
 python3 - <<'PY'
 from pathlib import Path
-import re
 import sys
+try:
+    import yaml
+except ModuleNotFoundError:
+    print("ERROR: PyYAML is required for scripts/security-policy-check.sh (pip install pyyaml).", file=sys.stderr)
+    sys.exit(1)
 
 text = Path("bootstrap/argocd.yaml").read_text()
-for doc in text.split("---"):
-    if "kind: NetworkPolicy" not in doc or "name: argocd-server-network-policy" not in doc:
-        continue
-    if re.search(r'^\s*-\s*\{\}\s*$', doc, re.M):
-        print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
+docs = [d for d in yaml.safe_load_all(text) if d]
+
+policy = next(
+    (d for d in docs if d.get("kind") == "NetworkPolicy" and d.get("metadata", {}).get("name") == "argocd-server-network-policy"),
+    None,
+)
+if policy is None:
+    print("ERROR: argocd-server-network-policy not found in bootstrap/argocd.yaml.", file=sys.stderr)
+    sys.exit(1)
+if {} in (((policy.get("spec") or {}).get("ingress")) or []):
+    print("ERROR: argocd-server-network-policy still allows open ingress.", file=sys.stderr)
+    sys.exit(1)
+
+expected_repo_server_mtls = {
+    "argocd-application-controller": (
+        "StatefulSet",
+        "argocd-application-controller",
+        (
+            "controller.repo.server.ca.cert.path",
+            "controller.repo.server.client.cert.path",
+            "controller.repo.server.client.cert.key.path",
+        ),
+    ),
+    "argocd-applicationset-controller": (
+        "Deployment",
+        "argocd-applicationset-controller",
+        (
+            "applicationsetcontroller.repo.server.ca.cert.path",
+            "applicationsetcontroller.repo.server.client.cert.path",
+            "applicationsetcontroller.repo.server.client.cert.key.path",
+        ),
+    ),
+    "argocd-notifications-controller": (
+        "Deployment",
+        "argocd-notifications-controller",
+        (
+            "notificationscontroller.repo.server.ca.cert.path",
+            "notificationscontroller.repo.server.client.cert.path",
+            "notificationscontroller.repo.server.client.cert.key.path",
+        ),
+    ),
+    "argocd-repo-server": ("Deployment", "argocd-repo-server", ()),
+    "argocd-server": (
+        "Deployment",
+        "argocd-server",
+        (
+            "server.repo.server.ca.cert.path",
+            "server.repo.server.client.cert.path",
+            "server.repo.server.client.cert.key.path",
+        ),
+    ),
+}
+
+for workload_name, (workload_kind, container_name, required_keys) in expected_repo_server_mtls.items():
+    deployment = next(
+        (d for d in docs if d.get("kind") == workload_kind and d.get("metadata", {}).get("name") == workload_name),
+        None,
+    )
+    if deployment is None:
+        print(f"ERROR: {workload_kind} {workload_name} not found in bootstrap/argocd.yaml.", file=sys.stderr)
         sys.exit(1)
+
+    pod_spec = ((((deployment.get("spec") or {}).get("template") or {}).get("spec")) or {})
+    containers = pod_spec.get("containers") or []
+    container = next((c for c in containers if c.get("name") == container_name), None)
+    if container is None:
+        print(f"ERROR: {workload_name} missing expected container {container_name}.", file=sys.stderr)
+        sys.exit(1)
+
+    mounts = container.get("volumeMounts") or []
+    if not any(m.get("mountPath") == "/home/argocd/params" and m.get("name") == "argocd-cmd-params-cm" for m in mounts):
+        print(f"ERROR: {workload_name} missing /home/argocd/params volumeMount.", file=sys.stderr)
+        sys.exit(1)
+
+    if not any(m.get("mountPath") == "/app/config/reposerver/mtls" and m.get("name") == "argocd-repo-server-mtls" for m in mounts):
+        print(f"ERROR: {workload_name} missing repo-server mTLS volumeMount.", file=sys.stderr)
+        sys.exit(1)
+
+    volumes = pod_spec.get("volumes") or []
+    if not any(
+        v.get("name") == "argocd-cmd-params-cm"
+        and (v.get("configMap") or {}).get("name") == "argocd-cmd-params-cm"
+        and (v.get("configMap") or {}).get("optional") is True
+        for v in volumes
+    ):
+        print(f"ERROR: {workload_name} missing argocd-cmd-params-cm volume.", file=sys.stderr)
+        sys.exit(1)
+
+    if not any(v.get("name") == "argocd-repo-server-mtls" for v in volumes):
+        print(f"ERROR: {workload_name} missing argocd-repo-server-mtls volume.", file=sys.stderr)
+        sys.exit(1)
+
+    env = container.get("env") or []
+    for key in required_keys:
+        if not any(
+            ((item.get("valueFrom") or {}).get("configMapKeyRef") or {}).get("key") == key
+            and ((item.get("valueFrom") or {}).get("configMapKeyRef") or {}).get("name") == "argocd-cmd-params-cm"
+            for item in env
+        ):
+            print(
+                f"ERROR: {workload_name} cmd param is not wired via "
+                f"configMapKeyRef/name argocd-cmd-params-cm for key: {key}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 PY
 
 # ESO must not hold cluster-wide TokenRequest rights.
@@ -64,7 +167,11 @@ if [[ -f platform/external-secrets.yaml ]]; then
   python3 - <<'PY'
 from pathlib import Path
 import sys
-import yaml
+try:
+    import yaml
+except ModuleNotFoundError:
+    print("ERROR: PyYAML is required for scripts/security-policy-check.sh (pip install pyyaml).", file=sys.stderr)
+    sys.exit(1)
 
 app = yaml.safe_load(Path("platform/external-secrets.yaml").read_text())
 values = yaml.safe_load(app["spec"]["source"]["helm"]["values"]) or {}

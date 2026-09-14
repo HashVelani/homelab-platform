@@ -17,8 +17,8 @@ source ../scripts/policy-lib.sh
 
 # Verify ArgoCD tags on https://github.com/argoproj/argo-cd/releases and resolve digests with:
 # docker buildx imagetools inspect <image:tag>
-export ARGOCD_IMAGE="quay.io/argoproj/argocd:v3.4.5@sha256:224e454cfd8c1818fec3ed17b72b2034c9a3915fa819e1dcccafc753776d446a"
-export DEX_IMAGE="ghcr.io/dexidp/dex:v2.45.0@sha256:b8469881d3cb3a73001506f0d3aaefecb9c45d2311c1e0f405d8ac538316c59d"
+export ARGOCD_IMAGE="quay.io/argoproj/argocd:v3.5.2@sha256:e2aadfae709d904e87f46ba4aa49601d827b3022db22cd4d03aae816a2e7097b"
+export DEX_IMAGE="ghcr.io/dexidp/dex:v2.45.1@sha256:8499afd690c437f52301efd2b05b2455da5bd2dfc20332cd697dc9937f808462"
 export REDIS_IMAGE="public.ecr.aws/docker/library/redis:8.2.3-alpine@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba"
 # Derive ARGOCD_VERSION from the pinned ARGOCD_IMAGE tag (single source of truth).
 _argocd_image_no_digest="${ARGOCD_IMAGE%%@*}"
@@ -119,7 +119,7 @@ p.write_text(text)
 PY
 
 # Restore the Application CRD health check. ArgoCD dropped the built-in one in
-# v1.8 and it is still gone at v3.4.5: without it every child Application reads
+# v1.8 and it is still gone at v3.5.2: without it every child Application reads
 # Healthy the instant it appears, so sync waves do not wait and app-of-apps
 # ordering is decorative. Baking it into the seed means a rebuilt cluster is
 # correct from minute zero, and a self-manage sync of bootstrap/argocd.yaml
